@@ -404,7 +404,19 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         raf: 0,
         faceOrder: ["U", "F", "R", "D", "B", "L"],
         index: 0,
-        captured: createSolvedState()
+        captured: createSolvedState(),
+        lastDetailed: null,
+        stableSignature: "",
+        stableFrames: 0
+      };
+
+      const SCANNER_ADJACENT_FACE_MAP = {
+        U: new Set(["F", "R", "B", "L"]),
+        D: new Set(["F", "R", "B", "L"]),
+        F: new Set(["U", "D", "R", "L"]),
+        B: new Set(["U", "D", "R", "L"]),
+        R: new Set(["U", "D", "F", "B"]),
+        L: new Set(["U", "D", "F", "B"])
       };
 
       try {
@@ -1179,6 +1191,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         cubeScanner.active = true;
         cubeScanner.index = 0;
         cubeScanner.captured = createSolvedState();
+        cubeScanner.lastDetailed = null;
+        cubeScanner.stableSignature = "";
+        cubeScanner.stableFrames = 0;
         if (cubeScannerBackdropEl) cubeScannerBackdropEl.style.display = "block";
         if (cubeScannerModalEl) cubeScannerModalEl.style.display = "block";
         const videoShell = cubeScannerVideoEl?.parentElement;
@@ -1202,6 +1217,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           cubeScanner.stream.getTracks().forEach((track) => track.stop());
           cubeScanner.stream = null;
         }
+        cubeScanner.lastDetailed = null;
+        cubeScanner.stableSignature = "";
+        cubeScanner.stableFrames = 0;
         if (cubeScannerVideoEl) {
           cubeScannerVideoEl.srcObject = null;
         }
@@ -1274,51 +1292,84 @@ beginnerSolverWorker.addEventListener("message", (event) => {
             return {
               top: "Orange",
               bottom: "Red",
+              left: "Blue",
+              right: "Green",
               extra: "Keep the Red face along the bottom edge of the Yellow face."
             };
           case "D":
             return {
               top: "Red",
               bottom: "Orange",
+              left: "Blue",
+              right: "Green",
               extra: "Keep the Red face along the top edge of the White face."
             };
           case "F":
             return {
               top: "Yellow",
               bottom: "White",
-              extra: "This is the Red face. Keep Yellow above it and White below it."
+              left: "Blue",
+              right: "Green",
+              extra: "This is the Red face."
             };
           case "R":
             return {
               top: "Yellow",
               bottom: "White",
-              extra: "This is the Green face. Keep Yellow above it and White below it."
+              left: "Red",
+              right: "Orange",
+              extra: "This is the Green face."
             };
           case "B":
             return {
               top: "Yellow",
               bottom: "White",
-              extra: "This is the Orange face. Keep Yellow above it and White below it."
+              left: "Green",
+              right: "Blue",
+              extra: "This is the Orange face."
             };
           case "L":
             return {
               top: "Yellow",
               bottom: "White",
-              extra: "This is the Blue face. Keep Yellow above it and White below it."
+              left: "Orange",
+              right: "Red",
+              extra: "This is the Blue face."
             };
           default:
             return {
               top: "Yellow",
               bottom: "White",
+              left: "Blue",
+              right: "Green",
               extra: "Keep the face flat and the top row level."
             };
+        }
+      }
+
+      function getAllowedScannerColors(face) {
+        switch (face) {
+          case "U":
+            return new Set(["U", "F", "R", "B", "L"]);
+          case "D":
+            return new Set(["D", "F", "R", "B", "L"]);
+          case "F":
+            return new Set(["F", "U", "D", "R", "L"]);
+          case "B":
+            return new Set(["B", "U", "D", "R", "L"]);
+          case "R":
+            return new Set(["R", "U", "D", "F", "B"]);
+          case "L":
+            return new Set(["L", "U", "D", "F", "B"]);
+          default:
+            return new Set(FACE_ORDER);
         }
       }
 
       function updateCubeScannerOrientation(face) {
         if (!cubeScannerOrientationEl) return;
         const hint = getScannerOrientationHint(face);
-        cubeScannerOrientationEl.innerHTML = `Top should be <strong>${hint.top}</strong>. Bottom should be <strong>${hint.bottom}</strong>. ${hint.extra}`;
+        cubeScannerOrientationEl.innerHTML = `Top: <strong>${hint.top}</strong>. Bottom: <strong>${hint.bottom}</strong>. Left: <strong>${hint.left}</strong>. Right: <strong>${hint.right}</strong>. ${hint.extra}`;
       }
 
       function getScannerGuideMetrics() {
@@ -1365,8 +1416,13 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         if (cubeScannerVideoEl?.videoWidth) {
           const detailed = sampleScannerFaceDetailed();
+          cubeScanner.lastDetailed = detailed;
           updateCubeScannerQuality(detailed);
+          updateCubeScannerAutoCapture(detailed);
         } else if (cubeScannerQualityEl) {
+          cubeScanner.lastDetailed = null;
+          cubeScanner.stableSignature = "";
+          cubeScanner.stableFrames = 0;
           cubeScannerQualityEl.textContent = "Waiting for camera feed.";
           cubeScannerQualityEl.className = "scanner-quality";
         }
@@ -1374,7 +1430,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         cubeScanner.raf = requestAnimationFrame(renderCubeScannerOverlay);
       }
 
-      function captureCurrentScannerFace(precomputedFace = null) {
+      function captureCurrentScannerFace(precomputedDetailed = null) {
         if (!cubeScannerVideoEl || !cubeScannerVideoEl.videoWidth) {
           if (cubeScannerStatusEl) {
             cubeScannerStatusEl.textContent = "Start the camera before capturing a face.";
@@ -1383,7 +1439,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         }
 
         const face = cubeScanner.faceOrder[cubeScanner.index];
-        const captured = precomputedFace || sampleScannerFace();
+        const detailed = precomputedDetailed
+          ? precomputedDetailed
+          : (cubeScanner.lastDetailed || sampleScannerFaceDetailed());
+        const captured = detailed?.face || null;
+        const verification = verifyScannerCapture(face, detailed);
         if (!captured) {
           if (cubeScannerStatusEl) {
             cubeScannerStatusEl.textContent = "Could not read that face. Try again with steadier lighting and alignment.";
@@ -1393,6 +1453,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         cubeScanner.captured[face] = captured;
         cubeScanner.index += 1;
+        cubeScanner.lastDetailed = null;
+        cubeScanner.stableSignature = "";
+        cubeScanner.stableFrames = 0;
         drawCubeScannerPreviewNet();
 
         if (cubeScanner.index >= cubeScanner.faceOrder.length) {
@@ -1405,7 +1468,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         updateCubeScannerPrompt();
         if (cubeScannerStatusEl) {
-          cubeScannerStatusEl.textContent = `${FACE_COLOR_NAMES[face]} face captured. Now show the next face.`;
+          cubeScannerStatusEl.textContent = verification.ok
+            ? `${FACE_COLOR_NAMES[face]} face captured and verified. Now show the next face.`
+            : `${FACE_COLOR_NAMES[face]} face captured with a warning. Review the preview net, then continue or rescan.`;
         }
       }
 
@@ -1447,6 +1512,40 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return { face, confidences };
       }
 
+      function updateCubeScannerAutoCapture(detailed) {
+        const face = cubeScanner.faceOrder[cubeScanner.index];
+        if (!detailed || !face) {
+          cubeScanner.stableSignature = "";
+          cubeScanner.stableFrames = 0;
+          return;
+        }
+        const verification = verifyScannerCapture(face, detailed);
+        if (!verification.ok) {
+          cubeScanner.stableSignature = "";
+          cubeScanner.stableFrames = 0;
+          return;
+        }
+        const minConfidence = Math.min(...detailed.confidences);
+        const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
+        const aroundCenter = [1, 3, 5, 7].map((index) => detailed.face[index]);
+        const aroundCenterSet = new Set(aroundCenter);
+        if (minConfidence < 0.06 || avgConfidence < 0.14 || aroundCenterSet.size < 2) {
+          cubeScanner.stableSignature = "";
+          cubeScanner.stableFrames = 0;
+          return;
+        }
+        const signature = `${face}:${detailed.face.join("")}`;
+        if (cubeScanner.stableSignature === signature) {
+          cubeScanner.stableFrames += 1;
+        } else {
+          cubeScanner.stableSignature = signature;
+          cubeScanner.stableFrames = 1;
+        }
+        if (cubeScanner.stableFrames >= 18) {
+          captureCurrentScannerFace(detailed);
+        }
+      }
+
       function updateCubeScannerQuality(detailed) {
         if (!cubeScannerQualityEl) return;
         const face = cubeScanner.faceOrder[cubeScanner.index];
@@ -1458,29 +1557,79 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
         const centerFace = detailed.face[4];
-        const faceMatches = detailed.face.filter((entry) => entry === face).length;
         const centerOk = centerFace === face;
+        const detectedName = FACE_COLOR_NAMES[centerFace] || String(centerFace || "unknown");
+        const impossibleCount = countImpossibleScannerColors(face, detailed.face);
 
-        if (centerOk && faceMatches >= 5 && avgConfidence >= 0.2) {
-          cubeScannerQualityEl.textContent = "Good scan window. The face is centered and colors look stable.";
+        if (impossibleCount >= 5) {
+          cubeScannerQualityEl.textContent = `The guide still looks mostly like background or the wrong face. Fill the full ${FACE_COLOR_NAMES[face]} face into the 3x3 box.`;
+          cubeScannerQualityEl.className = "scanner-quality warn";
+          return;
+        }
+
+        if (centerOk && avgConfidence >= 0.1 && impossibleCount < 5) {
+          cubeScannerQualityEl.textContent = "Good scan window. Center color matches and the sticker read looks stable.";
           cubeScannerQualityEl.className = "scanner-quality good";
           return;
         }
 
         if (!centerOk) {
-          cubeScannerQualityEl.textContent = `Center sticker looks like ${FACE_COLOR_NAMES[centerFace]} instead of ${FACE_COLOR_NAMES[face]}. Recenter that face.`;
+          cubeScannerQualityEl.textContent = `Center sticker looks like ${detectedName} instead of ${FACE_COLOR_NAMES[face]}. Recenter that face.`;
           cubeScannerQualityEl.className = "scanner-quality warn";
           return;
         }
 
-        if (avgConfidence < 0.2) {
+        if (avgConfidence < 0.1) {
           cubeScannerQualityEl.textContent = "Scan looks noisy. Move closer, reduce glare, and keep the face flatter to the camera.";
           cubeScannerQualityEl.className = "scanner-quality warn";
           return;
         }
 
-        cubeScannerQualityEl.textContent = "Almost there. Fill more of the square guide and keep the top edge level before capturing.";
+        cubeScannerQualityEl.textContent = "Almost there. Keep the top row level and fill more of the square guide before capturing.";
         cubeScannerQualityEl.className = "scanner-quality";
+      }
+
+      function verifyScannerCapture(face, detailed) {
+        if (!detailed) {
+          return { ok: false, message: "Could not read that face. Try again with steadier lighting and alignment." };
+        }
+        const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
+        const centerFace = detailed.face[4];
+        const impossibleCount = countImpossibleScannerColors(face, detailed.face);
+        if (centerFace !== face) {
+          const detectedName = FACE_COLOR_NAMES[centerFace] || String(centerFace || "unknown");
+          return {
+            ok: false,
+            message: `Center sticker looks like ${detectedName} instead of ${FACE_COLOR_NAMES[face]}. Reorient the cube and try again.`
+          };
+        }
+        if (impossibleCount >= 5) {
+          return {
+            ok: false,
+            message: `The guide still looks like a partial face. Fill the full 3x3 ${FACE_COLOR_NAMES[face]} face before capturing.`
+          };
+        }
+        if (avgConfidence < 0.02) {
+          return {
+            ok: false,
+            message: "Scan quality is too low to trust. Move closer, reduce glare, and keep the face flat in the guide."
+          };
+        }
+        return {
+          ok: true,
+          message: `${FACE_COLOR_NAMES[face]} face captured and verified.`
+        };
+      }
+
+      function countImpossibleScannerColors(face, stickers) {
+        const adjacent = SCANNER_ADJACENT_FACE_MAP[face] || new Set();
+        let impossible = 0;
+        for (const sticker of stickers) {
+          if (sticker === face) continue;
+          if (adjacent.has(sticker)) continue;
+          impossible += 1;
+        }
+        return impossible;
       }
 
       function classifySampledColor(imageData) {
@@ -1500,17 +1649,42 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const r = totalR / count;
         const g = totalG / count;
         const b = totalB / count;
+        const { h, s, v } = rgbToHsv(r, g, b);
 
-        let bestFace = "U";
+        let faceFromHue = "U";
+        if (v > 0.62 && s < 0.2) {
+          faceFromHue = "D";
+        } else if (h >= 38 && h <= 78) {
+          faceFromHue = "U";
+        } else if (h >= 12 && h < 38) {
+          faceFromHue = "B";
+        } else if (h >= 78 && h < 170) {
+          faceFromHue = "R";
+        } else if (h >= 170 && h < 280) {
+          faceFromHue = "L";
+        } else {
+          faceFromHue = "F";
+        }
+
+        const sum = Math.max(r + g + b, 1);
+        const nr = r / sum;
+        const ng = g / sum;
+        const nb = b / sum;
+
+        let bestFace = faceFromHue;
         let bestDistance = Number.POSITIVE_INFINITY;
         let secondDistance = Number.POSITIVE_INFINITY;
         for (const [face, hex] of Object.entries(FACE_COLORS)) {
           const [tr, tg, tb] = hexToRgb(hex);
+          const tsum = Math.max(tr + tg + tb, 1);
+          const tnr = tr / tsum;
+          const tng = tg / tsum;
+          const tnb = tb / tsum;
           const distance = Math.sqrt(
-            (r - tr) * (r - tr) +
-            (g - tg) * (g - tg) +
-            (b - tb) * (b - tb)
-          );
+            (nr - tnr) * (nr - tnr) +
+            (ng - tng) * (ng - tng) +
+            (nb - tnb) * (nb - tnb)
+          ) + (face === faceFromHue ? -0.08 : 0);
           if (distance < bestDistance) {
             secondDistance = bestDistance;
             bestDistance = distance;
@@ -1519,10 +1693,37 @@ beginnerSolverWorker.addEventListener("message", (event) => {
             secondDistance = distance;
           }
         }
-        const confidence = secondDistance === Number.POSITIVE_INFINITY
+
+        const separation = secondDistance === Number.POSITIVE_INFINITY
           ? 1
-          : Math.max(0, (secondDistance - bestDistance) / Math.max(secondDistance, 1));
+          : Math.max(0, secondDistance - bestDistance);
+        const confidence = Math.max(0.02, Math.min(1, separation * 4 + (s * 0.35)));
         return { face: bestFace, confidence };
+      }
+
+      function rgbToHsv(r, g, b) {
+        const rn = r / 255;
+        const gn = g / 255;
+        const bn = b / 255;
+        const max = Math.max(rn, gn, bn);
+        const min = Math.min(rn, gn, bn);
+        const delta = max - min;
+        let h = 0;
+
+        if (delta !== 0) {
+          if (max === rn) {
+            h = 60 * (((gn - bn) / delta) % 6);
+          } else if (max === gn) {
+            h = 60 * (((bn - rn) / delta) + 2);
+          } else {
+            h = 60 * (((rn - gn) / delta) + 4);
+          }
+        }
+
+        if (h < 0) h += 360;
+        const s = max === 0 ? 0 : delta / max;
+        const v = max;
+        return { h, s, v };
       }
 
       function drawCubeScannerPreviewNet() {
