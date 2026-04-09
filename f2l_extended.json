@@ -1,0 +1,1127 @@
+{
+  "meta": {
+    "description": "Extended F2L case library — all case families beyond the standard 41 + 54 AF2L",
+    "sections": [
+      "jeff2l_corner_wrong_slot",
+      "jeff2l_edge_wrong_slot",
+      "jeff2l_both_wrong_slot",
+      "jeff2l_diagonal_slot",
+      "open_slot_cases",
+      "special_cases",
+      "winter_variation",
+      "summer_variation",
+      "last_slot_corner_only",
+      "last_slot_edge_only",
+      "xcross_cases",
+      "damage_control"
+    ],
+    "notes": [
+      "Jeff2L: neither piece is in the U layer, at least one is in a wrong slot",
+      "All setups assume white cross on bottom, FR is the target slot unless noted",
+      "Open slot cases assume the FL slot is empty (the extra free slot)",
+      "WV/SV: last-slot cases that also orient last-layer corners",
+      "corner_orientation codes: U=white up, F=white front/facing you, R=white right",
+      "Sources: cubefreak.net (Makisumi), speedcubedb.com, jperm.net, cubeskills.com"
+    ]
+  },
+
+  "jeff2l_corner_wrong_slot": {
+    "description": "Corner is in an adjacent wrong slot (FL instead of FR), edge is free. Neither piece is in U layer. Target slot is FR.",
+    "cases": [
+      {
+        "id": "J2L_C1",
+        "label": "Corner in FL slot, white up, edge in FR slot oriented",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "FR_slot",
+        "edge_orientation": "correct",
+        "setup": "L' R U L U' R'",
+        "algs": ["L' R U L U' R'", "D R U' R' D' R U R'", "R U' R' L U L'"]
+      },
+      {
+        "id": "J2L_C2",
+        "label": "Corner in FL slot, white up, edge in FR slot flipped",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "FR_slot",
+        "edge_orientation": "flipped",
+        "setup": "L' R U' R' U L",
+        "algs": ["L' R U' R' U L", "R U' R' D R U R' D'"]
+      },
+      {
+        "id": "J2L_C3",
+        "label": "Corner in FL slot, white facing front, edge free in U",
+        "corner_position": "FL_slot",
+        "corner_orientation": "F",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "R U L' U' L R'",
+        "algs": ["R U L' U' L R'", "L' U' R U R' L"]
+      },
+      {
+        "id": "J2L_C4",
+        "label": "Corner in FL slot, white facing right, edge free in U",
+        "corner_position": "FL_slot",
+        "corner_orientation": "R",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "L' U' R U L R'",
+        "algs": ["L' U' R U L R'", "R U' L' U R' L"]
+      },
+      {
+        "id": "J2L_C5",
+        "label": "Corner in FL slot, white up, edge in U correct orientation",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "y' R' U R2 U2 R2' U R",
+        "algs": ["y' R' U R2 U2 R2' U R", "y' R' U' R2 U2' R2' U' R"]
+      },
+      {
+        "id": "J2L_C6",
+        "label": "Corner in FL slot, white up, edge in U flipped",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "flipped",
+        "setup": "y' R U' R2 U2' R2 U' R'",
+        "algs": ["y' R U' R2 U2' R2 U' R'", "y' R U R2 U2' R2 U R'"]
+      },
+      {
+        "id": "J2L_C7",
+        "label": "Corner in FL slot oriented correctly, needs simple extraction",
+        "corner_position": "FL_slot",
+        "corner_orientation": "correct",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "R' F R U' F' R U' R'",
+        "algs": ["R' F R U' F' R U' R'", "L F' L' U F L U L'"]
+      },
+      {
+        "id": "J2L_C8",
+        "label": "Corner in FL slot, white facing left toward target, edge in U",
+        "corner_position": "FL_slot",
+        "corner_orientation": "L",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "L F' L' F U' R U R'",
+        "algs": ["L F' L' F U' R U R'", "R U' R' L' F L F'"]
+      },
+      {
+        "id": "J2L_C9",
+        "label": "Corner in BL slot, white up, edge in U",
+        "corner_position": "BL_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "y' R' U R2 U' R2' U R",
+        "algs": ["y' R' U R2 U' R2' U R", "L' U L U' L' U' L"]
+      },
+      {
+        "id": "J2L_C10",
+        "label": "Corner in BR slot, white up, edge in U",
+        "corner_position": "BR_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "R U' R2 U2 R2' U' R'",
+        "algs": ["R U' R2 U2 R2' U' R'", "y' R U' FRF' R2 U' R"]
+      },
+      {
+        "id": "J2L_C11",
+        "label": "Corner in BR slot, white right, edge in U flipped",
+        "corner_position": "BR_slot",
+        "corner_orientation": "R",
+        "edge_position": "U_layer",
+        "edge_orientation": "flipped",
+        "setup": "y' R U' F R F' R2 U' R",
+        "algs": ["y' R U' F R F' R2 U' R", "R' F R F' R U R' U' R U R'"]
+      },
+      {
+        "id": "J2L_C12",
+        "label": "Corner in wrong slot, highly misoriented, requires F-move extraction",
+        "corner_position": "FL_slot",
+        "corner_orientation": "F",
+        "edge_position": "U_layer",
+        "edge_orientation": "flipped",
+        "setup": "L F' L' F R U' R'",
+        "algs": ["L F' L' F R U' R'", "R' F2 R F U' F", "L F2 L' F' U F'"]
+      }
+    ]
+  },
+
+  "jeff2l_edge_wrong_slot": {
+    "description": "Edge is stuck in an adjacent wrong slot (FL instead of FR), corner is free. Neither piece in U layer.",
+    "cases": [
+      {
+        "id": "J2L_E1",
+        "label": "Edge in FL slot oriented correctly, corner in U white up",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "F Rw U2 Rw' F'",
+        "algs": ["F Rw U2 Rw' F'", "y' R2 U R2 U' R2'"]
+      },
+      {
+        "id": "J2L_E2",
+        "label": "Edge in FL slot flipped, corner in U white up",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "F' Lw' U2 Lw F",
+        "algs": ["F' Lw' U2 Lw F", "y' R2 U' R2' U R2"]
+      },
+      {
+        "id": "J2L_E3",
+        "label": "Edge in FL slot oriented, corner in U white front",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "F",
+        "setup": "R U L' U2 L R'",
+        "algs": ["R U L' U2 L R'", "L' U R U2' L R'"]
+      },
+      {
+        "id": "J2L_E4",
+        "label": "Edge in FL slot flipped, corner in U white front",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "F",
+        "setup": "L' U' R U2 L R'",
+        "algs": ["L' U' R U2 L R'", "R U' L' U' L U' R'"]
+      },
+      {
+        "id": "J2L_E5",
+        "label": "Edge in FL slot oriented, corner in U white right, needs RUL moves",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "R",
+        "setup": "R U' L' U' L U' R'",
+        "algs": ["R U' L' U' L U' R'", "L' U R U2' L U' R'"]
+      },
+      {
+        "id": "J2L_E6",
+        "label": "Edge in FL slot flipped, corner in U white right",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "R",
+        "setup": "L' U R U R' U L",
+        "algs": ["L' U R U R' U L", "R U' L' U2 R' U L"]
+      },
+      {
+        "id": "J2L_E7",
+        "label": "Edge in FL slot, wide-move trigger needed (Hardwick case)",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "F U Rw U' Rw' F'",
+        "algs": ["y' F' R' U R F", "R F U' F' R'", "F U Rw U' Rw' F'"]
+      },
+      {
+        "id": "J2L_E8",
+        "label": "Edge in FL slot flipped, wide-move trigger needed (Hardwick mirror)",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "F Rw U Rw' U' F'",
+        "algs": ["y' B R U' R' B'", "R' Uw' R Uw R", "F Rw U Rw' U' F'"]
+      },
+      {
+        "id": "J2L_E9",
+        "label": "Edge in FL slot, corner in U, requires u-move to extract without rotation",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "F",
+        "setup": "R U' R2 Uw' R' Uw R",
+        "algs": ["R U' R2 Uw' R' Uw R", "F U2 R' F' R2 U R'"]
+      },
+      {
+        "id": "J2L_E10",
+        "label": "Edge in FL slot flipped, corner in U, u-move variant",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "F",
+        "setup": "F' U2 L F L2' U' L",
+        "algs": ["F' U2 L F L2' U' L", "y' R' U' R2 U' R' F' U' F"]
+      },
+      {
+        "id": "J2L_E11",
+        "label": "Edge stuck deep in FL slot, corner needs to be kept out of the way",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "R",
+        "setup": "F' U2 L F L2 U' L",
+        "algs": ["F' U2 L F L2 U' L", "y' R' U' R2 U' R' U' F U' F'"]
+      },
+      {
+        "id": "J2L_E12",
+        "label": "Edge in BL slot correctly oriented, corner in U",
+        "edge_position": "BL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "R' U R' Uw' R2 Uw R2'",
+        "algs": ["R' U R' Uw' R2 Uw R2'", "y2 F Rw U2 Rw' F'"]
+      }
+    ]
+  },
+
+  "jeff2l_both_wrong_slot": {
+    "description": "Both corner and edge are in wrong slots. Neither is in the U layer. These are the hardest Jeff2L cases.",
+    "cases": [
+      {
+        "id": "J2L_B1",
+        "label": "Corner in FL slot white up, edge in FL slot — same wrong slot, oriented",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "setup": "y' R U' R U2 R2 U2 R U R",
+        "algs": ["y' R U' R U2 R2' U2' R U R", "y' R U R U2 R2' U2' R U' R"]
+      },
+      {
+        "id": "J2L_B2",
+        "label": "Corner in FL slot white up, edge in FL slot — same wrong slot, flipped",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "setup": "y' R' U R' U2 R2 U2 R' U' R'",
+        "algs": ["y' R' U R' U2 R2 U2 R' U' R'", "y' R' U' R' U2 R2 U2 R' U R'"]
+      },
+      {
+        "id": "J2L_B3",
+        "label": "Corner in FL slot white front, edge in FL slot — reduction by y'RU'R'",
+        "corner_position": "FL_slot",
+        "corner_orientation": "F",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "setup": "y' R U' R2 U' R U' R' U' R",
+        "algs": ["y' R U' R2' U' R U' R' U' R", "y' R U' R' U' R U' R2' U' R"]
+      },
+      {
+        "id": "J2L_B4",
+        "label": "Corner in FL slot white right, edge in FL slot — reduction by y'R'UR",
+        "corner_position": "FL_slot",
+        "corner_orientation": "R",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "setup": "y' R' U R2 U R' U R U R'",
+        "algs": ["y' R' U R2 U R' U R U R'", "y' R' U R U' R' U' R2 U R'"]
+      },
+      {
+        "id": "J2L_B5",
+        "label": "Corner in FL, edge in BR — opposite adjacent slots, both wrong",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "BR_slot",
+        "edge_orientation": "correct",
+        "setup": "L' U L U R U' R'",
+        "algs": ["L' U L U R U' R'", "R U' R' L' U' L U R U' R'"]
+      },
+      {
+        "id": "J2L_B6",
+        "label": "Corner in FL, edge in BR — flipped edge variant",
+        "corner_position": "FL_slot",
+        "corner_orientation": "U",
+        "edge_position": "BR_slot",
+        "edge_orientation": "flipped",
+        "setup": "L' U L U' R U' R'",
+        "algs": ["L' U L U' R U' R'", "R U R' L' U' L"]
+      },
+      {
+        "id": "J2L_B7",
+        "label": "Both in FL slot, reduction approach using L'UL first",
+        "corner_position": "FL_slot",
+        "corner_orientation": "F",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "setup": "L' U L U R U R'",
+        "algs": ["L' U L U R U R'", "L' U L E R U' R' U'"]
+      },
+      {
+        "id": "J2L_B8",
+        "label": "Corner in FL, edge in BL — both wrong, corner white front",
+        "corner_position": "FL_slot",
+        "corner_orientation": "F",
+        "edge_position": "BL_slot",
+        "edge_orientation": "correct",
+        "setup": "L F' L' F R U' R'",
+        "algs": ["L F' L' F R U' R'", "y' R U' R2 y R' F' R F"]
+      },
+      {
+        "id": "J2L_B9",
+        "label": "Corner in FL, edge in BL — corner white right",
+        "corner_position": "FL_slot",
+        "corner_orientation": "R",
+        "edge_position": "BL_slot",
+        "edge_orientation": "correct",
+        "setup": "R U R' F' L F L'",
+        "algs": ["R U R' F' L F L'", "y' R' U R2 F R F' R'"]
+      },
+      {
+        "id": "J2L_B10",
+        "label": "Corner in BR, edge in FL — both wrong, needs long sequence",
+        "corner_position": "BR_slot",
+        "corner_orientation": "U",
+        "edge_position": "FL_slot",
+        "edge_orientation": "correct",
+        "setup": "R U' R' U L' U' L U R U' R'",
+        "algs": ["R U' R' U' L' U L U R U' R'", "y' R U' R' U L' U' L"]
+      },
+      {
+        "id": "J2L_B11",
+        "label": "Corner and edge swapped — corner in FL, edge in FR, commutator case",
+        "corner_position": "FL_slot",
+        "corner_orientation": "correct",
+        "edge_position": "FR_slot",
+        "edge_orientation": "correct",
+        "setup": "L' U L U' R U' R'",
+        "algs": ["L' U L E R U' R' E'", "R U' R' L U' L' U2 R U' R'"]
+      },
+      {
+        "id": "J2L_B12",
+        "label": "Both pieces in FL slot, corner misoriented, edge flipped — worst case",
+        "corner_position": "FL_slot",
+        "corner_orientation": "R",
+        "edge_position": "FL_slot",
+        "edge_orientation": "flipped",
+        "setup": "L' U' L U L U' L' U R U' R'",
+        "algs": ["y' R U' R' U L U' L' U R U' R'", "L' U' L E R U' R' U E'"]
+      }
+    ]
+  },
+
+  "jeff2l_diagonal_slot": {
+    "description": "Corner or edge is in the diagonally opposite slot (FR piece in BL, or BL piece in FR). Rarest Jeff2L variant.",
+    "cases": [
+      {
+        "id": "J2L_D1",
+        "label": "Edge in diagonally opposite BL slot, corner in U",
+        "edge_position": "BL_slot",
+        "edge_orientation": "correct",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "R' U R' Uw' R2 Uw R2'",
+        "algs": ["R' U R' Uw' R2 Uw R2'", "R2 U' L U L' R2"]
+      },
+      {
+        "id": "J2L_D2",
+        "label": "Edge in BL slot flipped, corner in U",
+        "edge_position": "BL_slot",
+        "edge_orientation": "flipped",
+        "corner_position": "U_layer",
+        "corner_orientation": "U",
+        "setup": "R2 L U' L' U R2",
+        "algs": ["R2 L U' L' U R2", "R2 U L U' L' R2"]
+      },
+      {
+        "id": "J2L_D3",
+        "label": "Corner in BL slot, edge in U — diagonal corner wrong slot",
+        "corner_position": "BL_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "R2' F R U' F' R",
+        "algs": ["R2' F R U' F' R", "y2 R U' R' y' R U' R'"]
+      },
+      {
+        "id": "J2L_D4",
+        "label": "Corner in BL slot white front, edge in U flipped",
+        "corner_position": "BL_slot",
+        "corner_orientation": "F",
+        "edge_position": "U_layer",
+        "edge_orientation": "flipped",
+        "setup": "y' R' U R' Uw' R2 Uw R2'",
+        "algs": ["y' R' U R' Uw' R2 Uw R2'", "B2 D2 F D2 B2"]
+      },
+      {
+        "id": "J2L_D5",
+        "label": "Both corner and edge in diagonal slots — extreme rearrangement needed",
+        "corner_position": "BL_slot",
+        "corner_orientation": "U",
+        "edge_position": "BL_slot",
+        "edge_orientation": "correct",
+        "setup": "R2 U2 R' U2 R2",
+        "algs": ["y' R2 U2' R' U2' R2", "B2 D2 F D2 B2"]
+      },
+      {
+        "id": "J2L_D6",
+        "label": "Corner in BR (diagonal from FL target), edge in U",
+        "corner_position": "BR_slot",
+        "corner_orientation": "U",
+        "edge_position": "U_layer",
+        "edge_orientation": "correct",
+        "setup": "R2 U2 R2 U2 R2",
+        "algs": ["y' R2 U2' R2' U2' R2", "R U' R' U2 R U' R'"]
+      }
+    ]
+  },
+
+  "open_slot_cases": {
+    "description": "Cases where one extra F2L slot is open (empty). This is normal when solving pairs 2, 3, and 4. The open slot can be used as a temporary holding area, enabling shorter or rotation-free algorithms. Target slot is FR; open slot is FL unless noted.",
+    "cases": [
+      {
+        "id": "OS_1",
+        "label": "Free pair, open FL slot — use FL slot as intermediate",
+        "open_slot": "FL",
+        "pair_state": "formed_white_up",
+        "setup": "F R' F' R",
+        "algs": ["U R U' R'", "d R U' R'", "U2 R U' R' U R U' R'"],
+        "note": "Same as F2L_1 but FL slot being open enables regrip-free execution"
+      },
+      {
+        "id": "OS_2",
+        "label": "Edge in U, corner in open FL slot — keyhole style",
+        "open_slot": "FL",
+        "pair_state": "corner_in_open_slot",
+        "corner_orientation": "U",
+        "setup": "L' U L",
+        "algs": ["L' U L U' R U' R'", "U' L' U L U R U' R'", "d' R U' R' U L' U' L"]
+      },
+      {
+        "id": "OS_3",
+        "label": "Corner in open FL slot white front, edge in U oriented",
+        "open_slot": "FL",
+        "pair_state": "corner_in_open_slot",
+        "corner_orientation": "F",
+        "setup": "L U L'",
+        "algs": ["L U L' U' R U R'", "U L U L' U' R U' R'"]
+      },
+      {
+        "id": "OS_4",
+        "label": "Corner in open FL slot white right, edge in U flipped",
+        "open_slot": "FL",
+        "pair_state": "corner_in_open_slot",
+        "corner_orientation": "R",
+        "setup": "L' U' L",
+        "algs": ["L' U' L R U R'", "U2 L' U' L U' R U R'"]
+      },
+      {
+        "id": "OS_5",
+        "label": "Edge in open FL slot oriented, corner in U white up — keyhole edge",
+        "open_slot": "FL",
+        "pair_state": "edge_in_open_slot",
+        "edge_orientation": "correct",
+        "setup": "L U' L'",
+        "algs": ["R U R' U' L U' L'", "U R U2 R' U L U' L'", "d R' U R L U' L'"]
+      },
+      {
+        "id": "OS_6",
+        "label": "Edge in open FL slot flipped, corner in U white up",
+        "open_slot": "FL",
+        "pair_state": "edge_in_open_slot",
+        "edge_orientation": "flipped",
+        "setup": "L U L'",
+        "algs": ["L U' L' R U' R'", "U' L U L' U R U' R'"]
+      },
+      {
+        "id": "OS_7",
+        "label": "Both pieces in U, open slot enables direct no-AUF insert",
+        "open_slot": "FL",
+        "pair_state": "both_in_U",
+        "setup": "U R U' R'",
+        "algs": ["R U R'", "U' L U L' U R U' R'"],
+        "note": "Open slot means the insert doesn't disrupt anything"
+      },
+      {
+        "id": "OS_8",
+        "label": "Pair formed, open FL slot allows non-standard angle insert",
+        "open_slot": "FL",
+        "pair_state": "formed_side",
+        "setup": "F' U' F",
+        "algs": ["F' U F", "d R U R'", "L' U2 L U R U' R'"]
+      },
+      {
+        "id": "OS_9",
+        "label": "Corner in target slot, edge in open slot — open slot + corner in place",
+        "open_slot": "FL",
+        "pair_state": "corner_in_target_edge_in_open",
+        "setup": "R U' R' L U' L'",
+        "algs": ["L U' L' U R U' R'", "U' L U' L' U R U R'"]
+      },
+      {
+        "id": "OS_10",
+        "label": "Edge in target slot, corner in open slot",
+        "open_slot": "FL",
+        "pair_state": "edge_in_target_corner_in_open",
+        "setup": "R U R' L' U L",
+        "algs": ["L' U L U' R U' R'", "R' U R U L' U' L"]
+      },
+      {
+        "id": "OS_11",
+        "label": "Open BL slot, pair in U — BL slot open instead of FL",
+        "open_slot": "BL",
+        "pair_state": "both_in_U",
+        "setup": "U2 R U' R'",
+        "algs": ["R U R'", "y R U' R' U' R U R'"],
+        "note": "BL slot open gives more rotation-free flexibility for back insertions"
+      },
+      {
+        "id": "OS_12",
+        "label": "Open BR slot, pair in U — BR slot open",
+        "open_slot": "BR",
+        "pair_state": "both_in_U",
+        "setup": "U R' U R",
+        "algs": ["R' U' R", "y' R U' R'"],
+        "note": "BR open — can insert through back without cube rotation"
+      },
+      {
+        "id": "OS_13",
+        "label": "Two open slots (solving pair 2) — both FL and BL open",
+        "open_slot": "FL_BL",
+        "pair_state": "formed_white_up",
+        "setup": "R U' R'",
+        "algs": ["R U R'", "U' L U L'", "F' U' F"],
+        "note": "Maximum freedom — any of 3 angles works without disturbing anything"
+      },
+      {
+        "id": "OS_14",
+        "label": "Three open slots (solving pair 1) — only FR slot being worked on",
+        "open_slot": "FL_BL_BR",
+        "pair_state": "any",
+        "setup": "R U R' U' R U' R'",
+        "algs": ["R U' R'", "U R U' R'", "F' U F", "L U' L'"],
+        "note": "All 4 angles are equivalent — pick by lookahead to next pair"
+      },
+      {
+        "id": "OS_15",
+        "label": "Keyhole — edge already solved in target slot, only corner needed",
+        "open_slot": "FL",
+        "pair_state": "edge_solved_corner_free",
+        "corner_orientation": "U",
+        "setup": "R U R' U' R U' R'",
+        "algs": ["R U' R' U R U' R'", "y' R' U' R U' R' U R"],
+        "note": "Classic keyhole technique — edge is already in FR slot, just insert the corner"
+      },
+      {
+        "id": "OS_16",
+        "label": "Keyhole — corner solved in target slot, only edge needed",
+        "open_slot": "FL",
+        "pair_state": "corner_solved_edge_free",
+        "edge_orientation": "correct",
+        "setup": "R' F R F' U R U' R'",
+        "algs": ["U' R U' R' F R' F' R", "R' U R U' R' F R F'"],
+        "note": "Edge-only insertion into occupied slot"
+      }
+    ]
+  },
+
+  "special_cases": {
+    "description": "Special F2L situations that don't fit standard categories — swapped edges, damage control, two-pair solves, symmetric cases.",
+    "cases": [
+      {
+        "id": "SP_1",
+        "label": "FR and FL edges swapped — both in each other's slots (T-perm style)",
+        "category": "swapped_edges",
+        "setup": "F Rw U' Rw' F'",
+        "algs": ["F Rw U' Rw' F'", "F U Rw U' Rw' F'"],
+        "note": "R-thick inverse 6-move T. Swaps FR and FL edges simultaneously."
+      },
+      {
+        "id": "SP_2",
+        "label": "FR and FL edges swapped — opposite orientation",
+        "category": "swapped_edges",
+        "setup": "F Rw U Rw' U' F'",
+        "algs": ["F Rw U Rw' U' F'", "R' Uw' R Uw R"],
+        "note": "R-thick 6-move T."
+      },
+      {
+        "id": "SP_3",
+        "label": "FR and FL edges swapped — D-layer approach",
+        "category": "swapped_edges",
+        "setup": "D R U' R' Uw' U R U R'",
+        "algs": ["D R U' R' Uw' U R U R'", "D' L' U L E' L' U' L"]
+      },
+      {
+        "id": "SP_4",
+        "label": "FR and FL edges swapped, both flipped — (RwURwU')x3 F' form",
+        "category": "swapped_edges",
+        "setup": "F Rw U Rw' U' Rw U Rw' U' Rw U Rw' U' F'",
+        "algs": ["F (Rw U Rw' U')x3 F'"],
+        "note": "Sune-like wide move swap. Rare but needs a dedicated alg."
+      },
+      {
+        "id": "SP_5",
+        "label": "FR and FL edges swapped — y' R2 short form (Mario Laurent)",
+        "category": "swapped_edges",
+        "setup": "y' R2 U2 R' U2' R2",
+        "algs": ["y' R2 U2' R' U2' R2", "B2 D2 F D2 B2"]
+      },
+      {
+        "id": "SP_6",
+        "label": "FR and FL edges both flipped in place (not swapped)",
+        "category": "swapped_edges",
+        "setup": "y' R2 U2 R2 U2 R2",
+        "algs": ["y' R2 U2' R2' U2' R2", "M2 U M2 U2 M2 U M2"]
+      },
+      {
+        "id": "SP_7",
+        "label": "Dan2L — accidentally disrupted a solved F2L pair, LL permutation preserved",
+        "category": "damage_control",
+        "setup": "F' U' R' U2 R U' F",
+        "algs": ["F' U R' U2' R U' F", "B U' R U2' R' U B'"],
+        "note": "Named after Dan Dzoan. Both algs preserve LL permutation, minimizing damage."
+      },
+      {
+        "id": "SP_8",
+        "label": "Dan2L mirror — disrupted pair on left side",
+        "category": "damage_control",
+        "setup": "B U L U2 L' U B'",
+        "algs": ["B U' L U2' L' U B'", "F' U R U2' R' U F"]
+      },
+      {
+        "id": "SP_9",
+        "label": "RLU2L'R' — both F2L edges in each other's slots, corners solved",
+        "category": "damage_control",
+        "setup": "R L U2 L' R'",
+        "algs": ["R L U2 L' R'", "L R U2 R' L'"],
+        "note": "Simple 5-move fix when exactly the two F2L edges are swapped."
+      },
+      {
+        "id": "SP_10",
+        "label": "Two pairs solved simultaneously — lucky double-insert",
+        "category": "two_pair",
+        "setup": "x R U Rw2 U' R2 U Rw2 U' R' x'",
+        "algs": ["x R U Rw2 U' R2 U Rw2 U' R' x'"],
+        "note": "Solves both FR and FL pairs in one sequence. Very rare."
+      },
+      {
+        "id": "SP_11",
+        "label": "C1 — corner and edge both in target slot but misoriented (non-Jeff2L, non-U)",
+        "category": "neither_in_U",
+        "setup": "R U2 R U R' U R U2' R2'",
+        "algs": ["R U2' R U R' U R U2' R2'"],
+        "note": "Neither corner nor edge is in U layer. Non-Jeff2L case C1 from Makisumi."
+      },
+      {
+        "id": "SP_12",
+        "label": "C2 — mirror of C1",
+        "category": "neither_in_U",
+        "setup": "R2 U2 R' U' R U' R' U2 R'",
+        "algs": ["R2 U2' R' U' R U' R' U2 R'"]
+      },
+      {
+        "id": "SP_13",
+        "label": "D1 — both pieces in slot, needs y-rotation inside alg",
+        "category": "neither_in_U",
+        "setup": "y' R' U R' U' F' U F R2' y",
+        "algs": ["y' R' U R' U' F' U F R2' y", "y' R' U' R2 F R U' F' R'"]
+      },
+      {
+        "id": "SP_14",
+        "label": "D2 — mirror of D1",
+        "category": "neither_in_U",
+        "setup": "R U' R U y R U' R' F2 y'",
+        "algs": ["R U' R U y R U' R' F2 y'"]
+      },
+      {
+        "id": "SP_15",
+        "label": "Z case — both in target slot, completely wrong orientation, tricky extract",
+        "category": "neither_in_U",
+        "setup": "R U2 R' U R U2' R' d R' U' R y",
+        "algs": ["R U2 R' U R U2' R' d R' U' R y"],
+        "note": "Named Z case from Makisumi's advanced F2L taxonomy."
+      },
+      {
+        "id": "SP_16",
+        "label": "Pseudo-pair — corner and non-matching edge accidentally form a pair in U",
+        "category": "pseudo_pair",
+        "setup": "R U' L' U R' U' L",
+        "algs": ["R U' L' U R' U' L", "D R U2 R' D' R U' R'"],
+        "note": "Corner and wrong edge look like a pair. Requires D-move or careful separation."
+      },
+      {
+        "id": "SP_17",
+        "label": "Pair assembled via D layer — using D move to avoid cube rotation",
+        "category": "d_layer_insert",
+        "setup": "D' R U R' D",
+        "algs": ["D' R U R' D", "d R U R' d'"]
+      },
+      {
+        "id": "SP_18",
+        "label": "Pair insert to back-left slot without cube rotation using d move",
+        "category": "d_layer_insert",
+        "setup": "U' R U R' d R' U' R",
+        "algs": ["U' R U R' d R' U' R", "y2 U' R U R' U R U' R'"]
+      }
+    ]
+  },
+
+  "winter_variation": {
+    "description": "WV (Winter Variation) — last F2L slot, pair is formed and ready to insert as R U' R'. Also orients all LL corners, giving OLL skip if LL edges are oriented. 27 cases total based on LL corner orientation state.",
+    "note": "Corner orientation in LL is encoded as a 4-bit pattern: U=up/correct, CW=clockwise twisted, CCW=counter-clockwise twisted. The inserting corner is always correct by definition of the case.",
+    "cases": [
+      {
+        "id": "WV_1",
+        "label": "All LL corners correctly oriented — OLL skip (just insert)",
+        "ll_corner_state": "UUUU",
+        "setup": "R U R'",
+        "algs": ["R U' R'"],
+        "note": "Best case — do nothing extra, just insert."
+      },
+      {
+        "id": "WV_2",
+        "label": "Sune state — 1 corner correct, 3 need orientation",
+        "ll_corner_state": "U_CW_CW_CW",
+        "setup": "R U' R' U' R U' R' U2 R U' R'",
+        "algs": ["R U R' U R U2' R' U R U' R'", "U R U2' R' U' R U' R' U R U' R'"]
+      },
+      {
+        "id": "WV_3",
+        "label": "Anti-Sune state",
+        "ll_corner_state": "U_CCW_CCW_CCW",
+        "setup": "R U2 R' U R U' R' U R U' R'",
+        "algs": ["R U' R' U' R U R' U2 R U' R'", "U' R U2 R' U R U R' U R U' R'"]
+      },
+      {
+        "id": "WV_4",
+        "label": "H OLL state — 2 corners CW, 2 corners CCW (opposite pair)",
+        "ll_corner_state": "CW_CCW_CW_CCW",
+        "setup": "R U R' U' R U' R' U2 R U2' R'",
+        "algs": ["R U2 R' U2 R U' R'", "U2 R U R' U R U2' R' U R U' R'"]
+      },
+      {
+        "id": "WV_5",
+        "label": "Pi OLL state — 2 CW adjacent, 2 CCW adjacent",
+        "ll_corner_state": "CW_CW_CCW_CCW",
+        "setup": "R U' R' U' R U2 R' U' R U R'",
+        "algs": ["R U2 R' U' R U R' U' R U' R'", "U R U' R' U' R U2' R' U' R U' R'"]
+      },
+      {
+        "id": "WV_6",
+        "label": "T OLL state — 2 corners wrong (one pair diagonal)",
+        "ll_corner_state": "U_U_CW_CCW",
+        "setup": "R U R' U' R U2' R' U R U' R'",
+        "algs": ["R U2 R' U' R U R'", "U' R U R' U R U2' R'"]
+      },
+      {
+        "id": "WV_7",
+        "label": "U OLL state — 2 corners wrong (adjacent pair)",
+        "ll_corner_state": "U_U_CCW_CW",
+        "setup": "R U' R' U R U2 R' U R U' R'",
+        "algs": ["R U' R' U' R U2 R'", "U R U' R' U R U2' R' U R U' R'"]
+      },
+      {
+        "id": "WV_8",
+        "label": "L OLL state — 3 CW, 1 CCW (headlights diagonal)",
+        "ll_corner_state": "CW_CW_CW_CCW",
+        "setup": "R U R' U2 R U' R' U2 R U' R'",
+        "algs": ["R U' R' U2 R U R' U' R U2' R'", "U2 R U2' R' U' R U R' U R U' R'"]
+      },
+      {
+        "id": "WV_9",
+        "label": "L OLL mirror state — 1 CW, 3 CCW",
+        "ll_corner_state": "CCW_CCW_CCW_CW",
+        "setup": "R U2 R' U R U' R' U2 R U' R'",
+        "algs": ["R U' R' U' R U2 R' U' R U2' R'", "R U' R' U2 R U R'"]
+      },
+      {
+        "id": "WV_10",
+        "label": "Bowtie OLL — 2 CW, 2 CCW in bowtie pattern",
+        "ll_corner_state": "CW_CCW_CCW_CW",
+        "setup": "R U2 R' U' R U2 R' U' R U' R'",
+        "algs": ["R U' R' U R U2 R' U R U' R'", "R U' R' U2 R U' R' U' R U2 R'"]
+      },
+      {
+        "id": "WV_11",
+        "label": "All 4 corners CW — rare symmetric case",
+        "ll_corner_state": "CW_CW_CW_CW",
+        "setup": "R U R' U R U2' R' U R U2 R' U R U' R'",
+        "algs": ["R U2 R' U R U R' U R U2' R'", "U R U2' R' U R U R' U' R U2' R'"]
+      },
+      {
+        "id": "WV_12",
+        "label": "All 4 corners CCW — rare symmetric case mirror",
+        "ll_corner_state": "CCW_CCW_CCW_CCW",
+        "setup": "R U' R' U' R U2 R' U' R U2' R' U' R U' R'",
+        "algs": ["R U2 R' U' R U' R' U' R U2 R'", "U' R U2 R' U' R U' R' U R U2 R'"]
+      },
+      {
+        "id": "WV_13",
+        "label": "Two adjacent CW corners",
+        "ll_corner_state": "U_U_CW_CW",
+        "setup": "R U R' U R U' R' U R U2' R'",
+        "algs": ["R U R' U' R U2' R' U R U R'", "U R U R' U' R U2' R'"]
+      },
+      {
+        "id": "WV_14",
+        "label": "Two adjacent CCW corners",
+        "ll_corner_state": "U_U_CCW_CCW",
+        "setup": "R U' R' U' R U2 R' U' R U' R'",
+        "algs": ["R U' R' U R U2 R' U' R U' R'", "U' R U' R' U R U2 R'"]
+      },
+      {
+        "id": "WV_15",
+        "label": "One CW corner only (all others correct) — very easy",
+        "ll_corner_state": "U_U_U_CW",
+        "setup": "R U R' U' R U R' U' R U R' U R U' R'",
+        "algs": ["R U2 R' U R U' R' U R U R'", "U R U' R' U R U2 R'"]
+      },
+      {
+        "id": "WV_16",
+        "label": "One CCW corner only (all others correct)",
+        "ll_corner_state": "U_U_U_CCW",
+        "setup": "R U R' U R U' R' U R U R' U R U' R'",
+        "algs": ["R U' R' U' R U R' U' R U2 R'", "U' R U R' U' R U2 R'"]
+      }
+    ]
+  },
+
+  "summer_variation": {
+    "description": "SV (Summer Variation) — mirror of WV. Last F2L slot, pair inserts as R U R' (instead of R U' R'). Also orients all LL corners. 27 cases, mirror of WV set.",
+    "note": "Insert trigger is R U R' not R U' R'. Recognition same as WV but mirrored.",
+    "cases": [
+      {
+        "id": "SV_1",
+        "label": "All LL corners correct — OLL skip",
+        "ll_corner_state": "UUUU",
+        "setup": "R U' R'",
+        "algs": ["R U R'"]
+      },
+      {
+        "id": "SV_2",
+        "label": "Sune state — SV version",
+        "ll_corner_state": "U_CW_CW_CW",
+        "setup": "R U' R' U R U' R' U2 R U R'",
+        "algs": ["R U' R' U R U2' R' U R U R'", "U R U' R' U R U2 R'"]
+      },
+      {
+        "id": "SV_3",
+        "label": "Anti-Sune — SV version",
+        "ll_corner_state": "U_CCW_CCW_CCW",
+        "setup": "R U R' U2 R U' R' U R U R'",
+        "algs": ["R U' R' U2 R U R' U R U R'", "U' R U' R' U2 R U R'"]
+      },
+      {
+        "id": "SV_4",
+        "label": "H OLL — SV version",
+        "ll_corner_state": "CW_CCW_CW_CCW",
+        "setup": "R U2' R' U2 R U R'",
+        "algs": ["R U2 R' U2 R U R'"]
+      },
+      {
+        "id": "SV_5",
+        "label": "T OLL — SV version",
+        "ll_corner_state": "U_U_CW_CCW",
+        "setup": "R U2' R' U R U' R'",
+        "algs": ["R U2 R' U R U R'", "U' R U' R' U' R U2 R'"]
+      },
+      {
+        "id": "SV_6",
+        "label": "U OLL — SV version",
+        "ll_corner_state": "U_U_CCW_CW",
+        "setup": "R U R' U' R U2' R'",
+        "algs": ["R U R' U' R U2 R'", "U R U R' U' R U2 R'"]
+      },
+      {
+        "id": "SV_7",
+        "label": "Pi OLL — SV version",
+        "ll_corner_state": "CW_CW_CCW_CCW",
+        "setup": "R U' R' U R U2 R' U R U' R'",
+        "algs": ["R U' R' U2 R U' R' U R U R'"]
+      },
+      {
+        "id": "SV_8",
+        "label": "Two adjacent CW — SV version",
+        "ll_corner_state": "U_U_CW_CW",
+        "setup": "R U R' U R U' R' U R U2 R'",
+        "algs": ["R U' R' U R U2' R'", "R U' R' U' R U R' U R U R'"]
+      }
+    ]
+  },
+
+  "last_slot_corner_only": {
+    "description": "CLS (Corner Last Slot) — the last F2L edge is already solved. Only the corner needs inserting. These cases also handle LL corner orientation in some variants.",
+    "cases": [
+      {
+        "id": "CLS_1",
+        "label": "Corner in U white up, edge already in slot — basic corner insert",
+        "edge_state": "solved",
+        "corner_orientation": "U",
+        "corner_position": "UFL",
+        "algs": ["U' R U' R' U R U R'", "y' U R' U' R U' R' U' R"],
+        "note": "Edge is solved, so use algs that don't disrupt FR edge."
+      },
+      {
+        "id": "CLS_2",
+        "label": "Corner in U white front, edge solved",
+        "edge_state": "solved",
+        "corner_orientation": "F",
+        "corner_position": "URF",
+        "algs": ["R U R' U' R U' R'", "F' U F U R U' R'"]
+      },
+      {
+        "id": "CLS_3",
+        "label": "Corner in U white right, edge solved",
+        "edge_state": "solved",
+        "corner_orientation": "R",
+        "corner_position": "URF",
+        "algs": ["R U' R' U R U' R'", "R U2' R' U R U R'"]
+      },
+      {
+        "id": "CLS_4",
+        "label": "Corner in U white up, needs double trigger",
+        "edge_state": "solved",
+        "corner_orientation": "U",
+        "corner_position": "UBR",
+        "algs": ["U R U' R' U R U R'", "U2 R U R' U R U' R'"]
+      },
+      {
+        "id": "CLS_5",
+        "label": "Corner in wrong slot, edge solved — must extract corner without breaking edge",
+        "edge_state": "solved",
+        "corner_orientation": "misplaced",
+        "corner_position": "FR_slot_wrong",
+        "algs": ["R U R' U' R U' R' U2 R U' R'", "R U2 R' U' R U R' U' R U' R'"]
+      },
+      {
+        "id": "CLS_6",
+        "label": "Corner below in D layer (unlikely but possible in first solve)",
+        "edge_state": "solved",
+        "corner_orientation": "U",
+        "corner_position": "DFL",
+        "algs": ["R' D R U2 R' D' R", "D R U R' D' R U' R'"]
+      }
+    ]
+  },
+
+  "last_slot_edge_only": {
+    "description": "ELS (Edge Last Slot) / VHF2L — the last F2L corner is already solved. Only the edge needs inserting. Some variants also orient LL edges.",
+    "cases": [
+      {
+        "id": "ELS_1",
+        "label": "Edge in U oriented correctly, corner solved — simple edge insert",
+        "corner_state": "solved",
+        "edge_orientation": "correct",
+        "edge_position": "UF",
+        "algs": ["U' F' U F", "y' U R' U' R"],
+        "note": "Don't disturb the solved corner — use F or back-side moves only."
+      },
+      {
+        "id": "ELS_2",
+        "label": "Edge in U flipped, corner solved",
+        "corner_state": "solved",
+        "edge_orientation": "flipped",
+        "edge_position": "UF",
+        "algs": ["F' U' F U F' U' F", "U R' F R F' R' F R F'"]
+      },
+      {
+        "id": "ELS_3",
+        "label": "Edge in U, needs AUF before insert, corner solved",
+        "corner_state": "solved",
+        "edge_orientation": "correct",
+        "edge_position": "UR",
+        "algs": ["F' U2 F", "y' R' U2 R"]
+      },
+      {
+        "id": "ELS_4",
+        "label": "Edge in wrong slot flipped, corner solved — must extract without touching corner",
+        "corner_state": "solved",
+        "edge_orientation": "flipped",
+        "edge_position": "FL_slot",
+        "algs": ["F' L F L' R U' R'", "U R' F R F' R' F R F' R U' R'"]
+      },
+      {
+        "id": "ELS_5",
+        "label": "Edge in wrong slot oriented, corner solved",
+        "corner_state": "solved",
+        "edge_orientation": "correct",
+        "edge_position": "FL_slot",
+        "algs": ["L U' L' R U' R'", "F L F' L' U' F' U F"]
+      },
+      {
+        "id": "ELS_6",
+        "label": "Edge in BL slot, corner solved — diagonal edge wrong slot",
+        "corner_state": "solved",
+        "edge_orientation": "correct",
+        "edge_position": "BL_slot",
+        "algs": ["R2 U L U' L' R2", "y' R U' R' U L' U L"]
+      }
+    ]
+  },
+
+  "xcross_cases": {
+    "description": "XCross cases — the first F2L pair is solved simultaneously with the cross. These are recognition patterns, not separate alg sets, but Codex needs to know they exist.",
+    "cases": [
+      {
+        "id": "XC_1",
+        "label": "XCross — FR pair insertes during the last cross edge",
+        "category": "xcross",
+        "example_setup": "F R U R' U' F'",
+        "algs": ["F R U R' U' F'", "U R' F R F' U R U' R'"],
+        "note": "This is a planning case, not a distinct alg — the pair is assembled during cross solving."
+      },
+      {
+        "id": "XC_2",
+        "label": "XCross — pair formed during cross via lucky pair skip",
+        "category": "xcross",
+        "example_setup": "R U' R'",
+        "algs": ["R U' R'"],
+        "note": "0-move F2L. After cross, the FR pair is already solved."
+      },
+      {
+        "id": "XC_3",
+        "label": "XCross double — two pairs solved during cross",
+        "category": "xcross_double",
+        "example_setup": "F U R U' R' U R U' R' F'",
+        "algs": ["F U R U' R' U R U' R' F'"],
+        "note": "Extremely rare. Recognized during inspection."
+      }
+    ]
+  },
+
+  "damage_control": {
+    "description": "Cases where a previously solved pair has been accidentally disrupted during F2L, or where moves are needed to fix a global F2L mistake without restarting.",
+    "cases": [
+      {
+        "id": "DC_1",
+        "label": "One solved pair accidentally popped out during an F2L alg",
+        "category": "recovery",
+        "algs": ["R U' R' (re-insert, then continue)", "F' U F (re-insert other side)"],
+        "note": "Intuitive recovery — recognise which pair is out, bring it back with minimum moves."
+      },
+      {
+        "id": "DC_2",
+        "label": "Two solved pairs disrupted — use D-layer to restore order",
+        "category": "recovery",
+        "algs": ["D R U R' D'", "D2 R U' R' D2"],
+        "note": "D-layer rotation to re-align and re-insert two disrupted pairs."
+      },
+      {
+        "id": "DC_3",
+        "label": "Wrong pair was solved — need to remove it without fully undoing the solve",
+        "category": "recovery",
+        "algs": ["R U R' (pop pair)", "U2 (AUF)", "re-insert correct pair"],
+        "note": "Extract the wrong pair, use an AUF, and insert the correct one."
+      },
+      {
+        "id": "DC_4",
+        "label": "F2L pair solved into wrong slot — entire pair is correct but in wrong position",
+        "category": "wrong_slot_pair",
+        "setup": "D R' U R D'",
+        "algs": ["D R' U' R D'", "y2 R U R' U' R U' R'"],
+        "note": "Extract pair from wrong slot using D move, re-insert into correct slot."
+      },
+      {
+        "id": "DC_5",
+        "label": "Pair solved correctly but edge is flipped — need to fix edge orientation",
+        "category": "edge_flip_fix",
+        "setup": "R U R' U' R U R' F R' F' R",
+        "algs": ["R' F R F' U' R U' R' U R U R'", "F R U R' U' F' R U R'"],
+        "note": "Dedicated alg to flip the edge in-slot without displacing the corner."
+      }
+    ]
+  }
+}

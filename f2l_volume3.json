@@ -1,0 +1,470 @@
+{
+  "meta": {
+    "description": "F2L case library volume 3 — VLS subsets, HLS, multislotting, all U-layer AUF variants, ZBLS, MGLS, misc edge cases",
+    "total_sections": 18,
+    "notes": [
+      "VLS has 8 subsets x 27 cases = 216 total. We cover the key cases per subset.",
+      "HLS mirrors VLS with RUR' insert instead of RU'R'.",
+      "AUF variants: same pair, different U-layer pre-alignment needed.",
+      "ZBLS: last slot + orient last layer edges.",
+      "MGLS: last slot + solve last layer in fewer looks.",
+      "Multislotting: solving 2 pairs simultaneously.",
+      "All setups assume white cross bottom, target slot FR."
+    ]
+  },
+
+  "vls_wv_subset": {
+    "description": "VLS subset WV — pair is connected, inserts as R U' R', all LL edges oriented. Orients LL corners. 27 cases encoded by 3-corner orientation state (UBL, UBR, UFL each 0=correct, 1=CW, 2=CCW).",
+    "insert_trigger": "R U' R'",
+    "edge_state": "all_oriented",
+    "cases": [
+      { "id": "VLS_WV_000", "label": "All 3 LL corners correct (skip)", "state": "000", "setup": "R U R'", "algs": ["R U' R'"] },
+      { "id": "VLS_WV_001", "label": "UFL twisted CW", "state": "001", "setup": "R U' R' U' R U' R' U2 R U' R'", "algs": ["R U2 R' U R U R'", "U' R U R' U R U2' R'"] },
+      { "id": "VLS_WV_002", "label": "UFL twisted CCW", "state": "002", "setup": "R U' R' U2 R U R' U R U' R'", "algs": ["R U' R' U' R U2 R'", "U R U' R' U' R U2 R'"] },
+      { "id": "VLS_WV_010", "label": "UBR twisted CW", "state": "010", "setup": "R U2' R' U' R U R' U R U' R'", "algs": ["R U R' U2 R U' R'", "U R U2 R' U R U' R'"] },
+      { "id": "VLS_WV_020", "label": "UBR twisted CCW", "state": "020", "setup": "R U2 R' U R U' R' U R U' R'", "algs": ["R U' R' U2 R U R'", "U' R U2' R' U' R U R'"] },
+      { "id": "VLS_WV_100", "label": "UBL twisted CW", "state": "100", "setup": "R U R' U R U2' R' U R U' R'", "algs": ["R U2' R' U R U R' U R U' R'", "U R U' R' U R U2' R'"] },
+      { "id": "VLS_WV_200", "label": "UBL twisted CCW", "state": "200", "setup": "R U' R' U' R U2 R' U R U' R'", "algs": ["R U2 R' U' R U' R' U R U' R'", "U2 R L U' R' U L'"] },
+      { "id": "VLS_WV_011", "label": "UBR+UFL both CW", "state": "011", "setup": "R U' R' U R U' R' U2 R U2' R'", "algs": ["R U2 R' U2 R U' R'", "U2 R U R' U R U2' R' U R U' R'"] },
+      { "id": "VLS_WV_022", "label": "UBR+UFL both CCW", "state": "022", "setup": "R U2 R' U2 R U R' U R U' R'", "algs": ["R U2 R' U R U2 R' or L'R U R' U' L", "U2 R U' R' U R U2 R'"] },
+      { "id": "VLS_WV_012", "label": "UBR CW + UFL CCW", "state": "012", "setup": "R U' R' U' R U R' U' R U' R'", "algs": ["R U' R' U' R U R' U' R U' R'", "U' R U' R' U R U R' U' R U' R'"] },
+      { "id": "VLS_WV_021", "label": "UBR CCW + UFL CW", "state": "021", "setup": "R U' R' U R D' R U2 R' D R2 U' R'", "algs": ["R U' R' U R' D' R U2 R' D R2 U' R'"] },
+      { "id": "VLS_WV_101", "label": "UBL CW + UFL CW", "state": "101", "setup": "R U' R' r' F R F' M' U' R U' R'", "algs": ["R U' R' r' F R F' M' U' R U' R'"] },
+      { "id": "VLS_WV_102", "label": "UBL CW + UFL CCW", "state": "102", "setup": "R U2 R' U' L' U R U' R' L", "algs": ["R U2 R' U' L' U R U' R' L"] },
+      { "id": "VLS_WV_110", "label": "UBL + UBR both CW", "state": "110", "setup": "R U R D' R U' R' D R U R", "algs": ["R U R D' R U' R' D R U R"] },
+      { "id": "VLS_WV_120", "label": "UBL CW + UBR CCW", "state": "120", "setup": "R U' R D R' U2 R D' R2'", "algs": ["R U' R D R' U2 R D' R2'"] },
+      { "id": "VLS_WV_201", "label": "UBL CCW + UFL CW", "state": "201", "setup": "R U' R' U' R U' R'", "algs": ["R U' R' U' R U' R'"] },
+      { "id": "VLS_WV_202", "label": "UBL + UFL both CCW", "state": "202", "setup": "L' U2 L U L' U L R U2 R'", "algs": ["L' U2 L U L' U L R U2 R'"] },
+      { "id": "VLS_WV_210", "label": "UBL CCW + UBR CW", "state": "210", "setup": "U2 R U' R2 D' R U' R' D R", "algs": ["U2 R U' R2 D' R U' R' D R"] },
+      { "id": "VLS_WV_220", "label": "UBL + UBR both CCW", "state": "220", "setup": "U L' R U R' U R U' R' U2 L", "algs": ["U L' R U R' U R U' R' U2 L"] },
+      { "id": "VLS_WV_111", "label": "All 3 corners CW — Sune", "state": "111", "setup": "R U' R' U2 L' U R U' R' L", "algs": ["R U' R' U2 L' U R U' R' L"] },
+      { "id": "VLS_WV_222", "label": "All 3 corners CCW — anti-Sune", "state": "222", "setup": "U2 R L' U R' U' L U2 R U R'", "algs": ["U2 R L' U R' U' L U2 R U R'"] },
+      { "id": "VLS_WV_112", "label": "UBL+UBR CW, UFL CCW", "state": "112", "setup": "U' R U R D R' U R D' R2'", "algs": ["U' R U R D R' U R D' R2'"] },
+      { "id": "VLS_WV_121", "label": "UBL+UFL CW, UBR CCW", "state": "121", "setup": "R U2 R D R' U' R D' R2'", "algs": ["R U2 R D R' U' R D' R2'"] },
+      { "id": "VLS_WV_211", "label": "UBL CCW, UBR+UFL CW", "state": "211", "setup": "SA", "algs": ["SA — standard approach, insert pair then do OLL"] },
+      { "id": "VLS_WV_212", "label": "UBL CCW, UBR CW, UFL CCW", "state": "212", "setup": "R U' R' U' R U' R2 U' R U' R' U2 R", "algs": ["R U' R' U' R U' R2 U' R U' R' U2 R"] },
+      { "id": "VLS_WV_221", "label": "UBL+UBR CCW, UFL CW", "state": "221", "setup": "R U2 R' U R U' R' U R U2 R'", "algs": ["R U2 R' U R U' R' U R U2 R'"] },
+      { "id": "VLS_WV_122", "label": "UBL CW, UBR+UFL CCW", "state": "122", "setup": "SA", "algs": ["SA — standard approach"] }
+    ]
+  },
+
+  "vls_uf_subset": {
+    "description": "VLS UF subset — pair inserts as R U' R', UF edge is misoriented, other LL edges oriented. Solves full OLL.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UF"],
+    "cases": [
+      { "id": "VLS_UF_000", "label": "UF bad, all corners correct", "state": "000", "setup": "F R U R' U' F' R U' R'", "algs": ["F R U' R' U' R U R' F' R U' R'", "R U' R' U' R U' r' F R F' r"] },
+      { "id": "VLS_UF_001", "label": "UF bad, UFL CW", "state": "001", "setup": "F R U R' U' F' R U2 R' U R U' R'", "algs": ["R U2 R' F' U' F U R U' R'"] },
+      { "id": "VLS_UF_002", "label": "UF bad, UFL CCW", "state": "002", "setup": "F R U R' U' F' R U' R' U' R U2 R'", "algs": ["R U' R' F U F' U' R U' R'"] },
+      { "id": "VLS_UF_010", "label": "UF bad, UBR CW", "state": "010", "setup": "F R U R' U' F' R U2 R' U' R U R'", "algs": ["R U' R' U2 F R U R' U' F' R U' R'"] },
+      { "id": "VLS_UF_020", "label": "UF bad, UBR CCW", "state": "020", "setup": "F R U R' U' F' R U' R' U R U2' R'", "algs": ["R U R' U2' F R U R' U' F' R U' R'"] },
+      { "id": "VLS_UF_100", "label": "UF bad, UBL CW", "state": "100", "setup": "F R U R' U' F' R U R' U R U2' R'", "algs": ["R U' R' U F U' R U' R' F'"] },
+      { "id": "VLS_UF_200", "label": "UF bad, UBL CCW", "state": "200", "setup": "F R U R' U' F' R U' R' U' R U2 R'", "algs": ["R U2 R' U2 F R U R' U' F' R U' R'"] },
+      { "id": "VLS_UF_111", "label": "UF bad, all 3 corners CW", "state": "111", "setup": "F R U R' U' F' SA_sune", "algs": ["F R U' R' F' R U' R' U' R U R' U R U' R'"] },
+      { "id": "VLS_UF_222", "label": "UF bad, all 3 corners CCW", "state": "222", "setup": "F R U R' U' F' SA_antisune", "algs": ["F' U' F R U' R' U R U R' U R U' R'"] }
+    ]
+  },
+
+  "vls_ul_subset": {
+    "description": "VLS UL subset — pair inserts as R U' R', UL edge is misoriented.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UL"],
+    "cases": [
+      { "id": "VLS_UL_000", "label": "UL bad, corners correct", "state": "000", "setup": "L F' L' F R U' R'", "algs": ["R U' R' L F' L' F"] },
+      { "id": "VLS_UL_001", "label": "UL bad, UFL CW", "state": "001", "setup": "L F' L' F R U2 R' U R U' R'", "algs": ["R U' R' U R U2' R' L F' L' F"] },
+      { "id": "VLS_UL_002", "label": "UL bad, UFL CCW", "state": "002", "setup": "L F' L' F R U' R' U' R U2 R'", "algs": ["R U2 R' U' R U R' L F' L' F"] },
+      { "id": "VLS_UL_010", "label": "UL bad, UBR CW", "state": "010", "setup": "L F' L' F R U R' U R U2' R'", "algs": ["R U2' R' U R U' R' L F' L' F"] },
+      { "id": "VLS_UL_020", "label": "UL bad, UBR CCW", "state": "020", "setup": "L F' L' F R U' R' U R U2 R'", "algs": ["R U2 R' U' R U' R' L F' L' F"] },
+      { "id": "VLS_UL_100", "label": "UL bad, UBL CW", "state": "100", "setup": "L F' L' F R U' R' U' R U' R'", "algs": ["R U R' U' R U R' L F' L' F"] },
+      { "id": "VLS_UL_200", "label": "UL bad, UBL CCW", "state": "200", "setup": "L F' L' F R U' R2' U' R U R'", "algs": ["R U' R' U R U2 R' L F' L' F"] }
+    ]
+  },
+
+  "vls_ub_subset": {
+    "description": "VLS UB subset — pair inserts as R U' R', UB edge is misoriented.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UB"],
+    "cases": [
+      { "id": "VLS_UB_000", "label": "UB bad, corners correct", "state": "000", "setup": "B U B' R U' R'", "algs": ["R U' R' B U B'", "B' U' B R U' R'"] },
+      { "id": "VLS_UB_001", "label": "UB bad, UFL CW", "state": "001", "setup": "B U B' R U2 R' U R U' R'", "algs": ["R U2' R' U R U R' B' U' B"] },
+      { "id": "VLS_UB_002", "label": "UB bad, UFL CCW", "state": "002", "setup": "B U B' R U' R' U' R U2 R'", "algs": ["R U2 R' U' R U' R' B' U' B"] },
+      { "id": "VLS_UB_010", "label": "UB bad, UBR CW", "state": "010", "setup": "B U B' R U' R' U R U2' R'", "algs": ["R U2' R' U R U' R' B' U' B"] },
+      { "id": "VLS_UB_020", "label": "UB bad, UBR CCW", "state": "020", "setup": "B U B' R U' R' U' R U2' R'", "algs": ["R U2 R' U' R U R' B' U' B"] },
+      { "id": "VLS_UB_100", "label": "UB bad, UBL CW", "state": "100", "setup": "B U B' R U R' U R U2' R'", "algs": ["R U2' R' U R U' R' B' U' B"] },
+      { "id": "VLS_UB_200", "label": "UB bad, UBL CCW", "state": "200", "setup": "B U B' R U' R' U2 R U' R'", "algs": ["R U' R' U2' R U R' B' U' B"] }
+    ]
+  },
+
+  "vls_uful_subset": {
+    "description": "VLS UFUL subset — UF and UL edges both misoriented.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UF", "UL"],
+    "cases": [
+      { "id": "VLS_UFUL_000", "label": "UF+UL bad, corners correct", "state": "000", "setup": "L F R U R' U' F' L'", "algs": ["L F R U' R' U' F' L'", "R U' R' U' R U R' F U' F' U F R' F'"] },
+      { "id": "VLS_UFUL_001", "label": "UF+UL bad, UFL CW", "state": "001", "setup": "L F R U' R' F' L' R U' R'", "algs": ["R U' R' L F' U F L'"] },
+      { "id": "VLS_UFUL_002", "label": "UF+UL bad, UFL CCW", "state": "002", "setup": "L F R U2 R' F' L' R U R'", "algs": ["R U2 R' L F' U' F L'"] },
+      { "id": "VLS_UFUL_010", "label": "UF+UL bad, UBR CW", "state": "010", "setup": "L F R U R' F' L' R U' R'", "algs": ["R U' R' L F' U2 F L'"] },
+      { "id": "VLS_UFUL_020", "label": "UF+UL bad, UBR CCW", "state": "020", "setup": "L F R U' R' U2 F' L' R U R'", "algs": ["R U2' R' L F' U F' L F2"] },
+      { "id": "VLS_UFUL_100", "label": "UF+UL bad, UBL CW", "state": "100", "setup": "L F R U2' R' F' L' R U' R'", "algs": ["R U' R' U' L F' U' F L'"] },
+      { "id": "VLS_UFUL_200", "label": "UF+UL bad, UBL CCW", "state": "200", "setup": "L F R U R' F' L' R U2 R'", "algs": ["R U2 R' U L F' U F L'"] }
+    ]
+  },
+
+  "vls_ulub_subset": {
+    "description": "VLS ULUB subset — UL and UB edges both misoriented.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UL", "UB"],
+    "cases": [
+      { "id": "VLS_ULUB_000", "label": "UL+UB bad, corners correct", "state": "000", "setup": "B U L F' L' F B'", "algs": ["R U' R' B' U' L F' L' F B"] },
+      { "id": "VLS_ULUB_001", "label": "UL+UB bad, UFL CW", "state": "001", "setup": "B U L F' L' F B' R U2 R' U R U' R'", "algs": ["R U2' R' U R U R' B' U' L F' L' F B"] },
+      { "id": "VLS_ULUB_002", "label": "UL+UB bad, UFL CCW", "state": "002", "setup": "B U L F' L' F B' R U' R' U' R U2 R'", "algs": ["R U2 R' U' R U' R' B' U' L F' L' F B"] },
+      { "id": "VLS_ULUB_010", "label": "UL+UB bad, UBR CW", "state": "010", "setup": "B' L F' L' B U' R U' R'", "algs": ["R U R' U B L F' L' B'"] },
+      { "id": "VLS_ULUB_020", "label": "UL+UB bad, UBR CCW", "state": "020", "setup": "B' L F' L' B U2 R U R'", "algs": ["R U' R' U2' B L F' L' B'"] }
+    ]
+  },
+
+  "vls_ufub_subset": {
+    "description": "VLS UFUB subset — UF and UB edges both misoriented.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UF", "UB"],
+    "cases": [
+      { "id": "VLS_UFUB_000", "label": "UF+UB bad, corners correct", "state": "000", "setup": "F R U R' U' F' B U B'", "algs": ["R U' R' B' U' B F R U R' U' F'"] },
+      { "id": "VLS_UFUB_001", "label": "UF+UB bad, UFL CW", "state": "001", "setup": "F R U R' U' F' B U B' R U2 R' U R U' R'", "algs": ["R U2' R' U R U R' F R U R' U' F' B' U' B"] },
+      { "id": "VLS_UFUB_002", "label": "UF+UB bad, UFL CCW", "state": "002", "setup": "F R U R' U' F' B U B' R U' R' U' R U2 R'", "algs": ["R U2 R' U' R U' R' B' U' B F R U R' U' F'"] },
+      { "id": "VLS_UFUB_010", "label": "UF+UB bad, UBR CW", "state": "010", "setup": "F R U R' U' F' B U B' R U R' U R U2' R'", "algs": ["R U2' R' U R U' R' B' U' B F R U' R' F'"] },
+      { "id": "VLS_UFUB_020", "label": "UF+UB bad, UBR CCW", "state": "020", "setup": "F R U R' U' F' B U B' R U' R' U R U2 R'", "algs": ["R U2 R' U R U' R' B' U' B F R U R' U' F'"] }
+    ]
+  },
+
+  "vls_all_edges_subset": {
+    "description": "VLS All-edges subset — all 4 LL edges misoriented. Hardest to execute cleanly.",
+    "insert_trigger": "R U' R'",
+    "misoriented_edges": ["UF", "UL", "UB", "UR"],
+    "cases": [
+      { "id": "VLS_ALL_000", "label": "All edges bad, corners correct", "state": "000", "setup": "M2 U M2 U2 M2 U M2 R U' R'", "algs": ["R U' R' M2 U' M2 U2 M2 U' M2"] },
+      { "id": "VLS_ALL_001", "label": "All edges bad, UFL CW", "state": "001", "setup": "M2 U M2 U2 M2 U M2 R U2 R' U R U' R'", "algs": ["R U2' R' U R U R' M2 U' M2 U2 M2 U' M2"] },
+      { "id": "VLS_ALL_002", "label": "All edges bad, UFL CCW", "state": "002", "setup": "M2 U M2 U2 M2 U M2 R U' R' U' R U2 R'", "algs": ["R U2 R' U' R U' R' M2 U' M2 U2 M2 U' M2"] },
+      { "id": "VLS_ALL_010", "label": "All edges bad, UBR CW", "state": "010", "setup": "M2 U M2 U2 M2 U M2 R U R' U R U2' R'", "algs": ["R U2' R' U R U' R' M2 U' M2 U2 M2 U' M2"] },
+      { "id": "VLS_ALL_111", "label": "All edges bad, all 3 corners CW", "state": "111", "setup": "M2 U M2 U2 M2 U M2 sune_setup", "algs": ["R U' R' U2 L' U R U' R' L M2 U' M2 U2 M2 U' M2"] }
+    ]
+  },
+
+  "hls_cases": {
+    "description": "HLS (Hessler Last Slot) — mirror of VLS. Pair inserts as R U R' instead of R U' R'. Solves full OLL. 8 subsets x 27 = 216 cases. Key cases listed.",
+    "insert_trigger": "R U R'",
+    "cases": [
+      { "id": "HLS_WV_000", "label": "SV: All LL edges oriented, corners correct — just insert", "edge_state": "all_oriented", "ll_corners": "UUUU", "setup": "R U' R'", "algs": ["R U R'"] },
+      { "id": "HLS_WV_001", "label": "SV: Edges oriented, UFL CW", "edge_state": "all_oriented", "ll_corners": "UU_CW", "setup": "R U R' U' R U' R' U2 R U R'", "algs": ["R U' R' U R U2' R' U R U R'"] },
+      { "id": "HLS_WV_002", "label": "SV: Edges oriented, UFL CCW", "edge_state": "all_oriented", "ll_corners": "UU_CCW", "setup": "R U R' U2 R U' R' U R U R'", "algs": ["R U' R' U2 R U R' U R U R'"] },
+      { "id": "HLS_WV_010", "label": "SV: Edges oriented, UBR CW", "edge_state": "all_oriented", "ll_corners": "U_CW_U", "setup": "R U R' U R U' R' U R U R'", "algs": ["R U' R' U R U' R' U2 R U R'"] },
+      { "id": "HLS_WV_020", "label": "SV: Edges oriented, UBR CCW", "edge_state": "all_oriented", "ll_corners": "U_CCW_U", "setup": "R U R' U' R U2 R' U R U R'", "algs": ["R U' R' U' R U2 R' U R U R'"] },
+      { "id": "HLS_WV_100", "label": "SV: Edges oriented, UBL CW", "edge_state": "all_oriented", "ll_corners": "CW_UU", "setup": "R U R' U R U2' R' U R U R'", "algs": ["R U' R' U' R U R' U' R U2 R'"] },
+      { "id": "HLS_WV_200", "label": "SV: Edges oriented, UBL CCW", "edge_state": "all_oriented", "ll_corners": "CCW_UU", "setup": "R U R' U' R U2 R' U' R U R'", "algs": ["R U' R' U R U2 R' U R U R'"] },
+      { "id": "HLS_WV_111", "label": "SV: Edges oriented, all CW", "edge_state": "all_oriented", "ll_corners": "CW_CW_CW", "setup": "R U' R' sune_HLS", "algs": ["R U' R' U R U2' R' U R U R' U R U R'"] },
+      { "id": "HLS_UF_000", "label": "HLS UF: UF bad, corners correct", "edge_state": "UF_bad", "ll_corners": "UUUU", "setup": "F R U R' U' F' R U R'", "algs": ["R U R' F R U' R' U' R U R' F'"] },
+      { "id": "HLS_UF_001", "label": "HLS UF: UF bad, UFL CW", "edge_state": "UF_bad", "ll_corners": "UU_CW", "setup": "F R U R' U' F' R U2 R' U R U R'", "algs": ["R U R' U R U2' R' F R U' R' F'"] },
+      { "id": "HLS_UL_000", "label": "HLS UL: UL bad, corners correct", "edge_state": "UL_bad", "ll_corners": "UUUU", "setup": "L' F L F' R U R'", "algs": ["R U R' L' F L F'"] },
+      { "id": "HLS_UB_000", "label": "HLS UB: UB bad, corners correct", "edge_state": "UB_bad", "ll_corners": "UUUU", "setup": "B' U' B R U R'", "algs": ["R U R' B' U' B"] },
+      { "id": "HLS_ALL_000", "label": "HLS All edges bad, corners correct", "edge_state": "all_bad", "ll_corners": "UUUU", "setup": "M2 U M2 U2 M2 U M2 R U R'", "algs": ["R U R' M2 U' M2 U2 M2 U' M2"] }
+    ]
+  },
+
+  "auf_variants": {
+    "description": "AUF (Adjust U Face) variants — the same F2L case but with the pair at a different U-layer angle requiring 0, 1, 2, or 3 U moves before the main algorithm. These are the exact same 41 cases but encountered at different angles. Codex needs to handle all 4 AUF positions for every case.",
+    "cases": [
+      { "id": "AUF_0", "label": "Pair already at correct angle — no AUF needed", "auf_moves": 0, "note": "Standard case, execute alg directly" },
+      { "id": "AUF_U", "label": "Pair needs one U move to align", "auf_moves": 1, "note": "Prepend U to the standard alg. e.g. U then R U R'" },
+      { "id": "AUF_U2", "label": "Pair needs U2 to align", "auf_moves": 2, "note": "Prepend U2 to standard alg" },
+      { "id": "AUF_UP", "label": "Pair needs U' to align", "auf_moves": -1, "note": "Prepend U' to standard alg" },
+      { "id": "AUF_RECOG_FR", "label": "Edge sticker faces front — R-color family, use RU-gen algs", "recognition": "edge_F_sticker", "note": "When the edge's non-white sticker faces FR, RU-gen family applies directly" },
+      { "id": "AUF_RECOG_FL", "label": "Edge sticker faces left — F-color family, y' then RU-gen", "recognition": "edge_L_sticker", "note": "When edge sticker faces FL, do y' rotation or use FL-specific algs" },
+      { "id": "AUF_RECOG_BL", "label": "Edge in back-left U position", "recognition": "edge_BL_position", "note": "U2 AUF typically needed, or use back-facing alg" },
+      { "id": "AUF_RECOG_BR", "label": "Edge in back-right U position", "recognition": "edge_BR_position", "note": "U or U' AUF typically needed" }
+    ]
+  },
+
+  "multislotting_cases": {
+    "description": "Multislotting — solving 2 F2L pairs simultaneously. Requires recognizing how the current pair's solution affects the next pair. Key patterns listed.",
+    "cases": [
+      {
+        "id": "MS_1",
+        "label": "Influencing — insert pair with U2 instead of U' to leave next pair as free pair",
+        "category": "influencing",
+        "example_setup": "R U2 R' instead of R U' R'",
+        "algs": ["R U2 R' (leaves next pair in better position)"],
+        "note": "Choose the U2 insert when lookahead shows it gives a better next case"
+      },
+      {
+        "id": "MS_2",
+        "label": "Influencing — insert pair to set up free pair for next slot",
+        "category": "influencing",
+        "example_setup": "U R U' R' (sets up FL pair as F2L_1)",
+        "algs": ["U R U' R'", "U2 R U' R'"],
+        "note": "AUF choice during current insert dictates next pair case"
+      },
+      {
+        "id": "MS_3",
+        "label": "Pseudo-pair — corner and wrong-color edge accidentally pair, use D move",
+        "category": "pseudo_pair",
+        "example_setup": "R U' L' U R' U' L",
+        "algs": ["D R U2 R' D'", "R U' L' U R' U' L"]
+      },
+      {
+        "id": "MS_4",
+        "label": "Keyhole influence — use open slot to hold a piece while solving another pair",
+        "category": "keyhole",
+        "example_setup": "D R U R' D'",
+        "algs": ["D R U R' D'", "D' L' U' L D"],
+        "note": "Insert a piece into an open slot temporarily, solve another pair, retrieve"
+      },
+      {
+        "id": "MS_5",
+        "label": "Last 2 pairs (L2P) — FR and FL pairs both unsolved, solve together",
+        "category": "l2p",
+        "example_setup": "R U R' U' L' U' L U' R U' R'",
+        "algs": ["R U R' U' L' U' L", "U R U' R' L' U L"],
+        "note": "L2P has hundreds of cases. Key pattern: both pairs in U layer"
+      },
+      {
+        "id": "MS_6",
+        "label": "L2P — one pair formed, one split, in U layer together",
+        "category": "l2p",
+        "example_setup": "R U2 R' L' U L",
+        "algs": ["R U2 R' L' U L", "L' U L R U2 R'"]
+      },
+      {
+        "id": "MS_7",
+        "label": "L2P — both pairs formed as connected pairs in U layer",
+        "category": "l2p",
+        "example_setup": "R U' R' L' U L",
+        "algs": ["R U' R' L' U L", "L' U L R U' R'"]
+      },
+      {
+        "id": "MS_8",
+        "label": "L2P — one pair in slot wrong, other in U — swap via D move",
+        "category": "l2p",
+        "example_setup": "D R U' R' D' L' U L",
+        "algs": ["D R U' R' D' L' U L"]
+      },
+      {
+        "id": "MS_9",
+        "label": "Pseudoslotting — solve corner of one pair + edge of another simultaneously",
+        "category": "pseudoslot",
+        "example_setup": "D R U R' U2 R U' R' D'",
+        "algs": ["D R U R' U2 R U' R' D'"],
+        "note": "Named after ZZ technique. Solve DFL corner + FR edge in one sequence"
+      },
+      {
+        "id": "MS_10",
+        "label": "L2P lucky — both pairs solved in single trigger",
+        "category": "l2p_lucky",
+        "example_setup": "R U' R'",
+        "algs": ["R U' R'"],
+        "note": "Extremely rare. One move solves both remaining pairs"
+      }
+    ]
+  },
+
+  "zbls_cases": {
+    "description": "ZBLS (Zborowski-Bruchem Last Slot) — last F2L slot, all LL edges are oriented. Solve the last slot AND orient last layer edges simultaneously. 40 cases.",
+    "note": "ZBLS leads into ZBLL (no OLL needed). Pair can be in any state; recognition is by edge orientation + pair position.",
+    "cases": [
+      { "id": "ZBLS_1", "label": "Edge in U correct, corner in U white up, all LL edges oriented", "pair_state": "both_U_standard", "ll_edges": "oriented", "setup": "R U' R'", "algs": ["R U' R'", "U' R U R'"] },
+      { "id": "ZBLS_2", "label": "Edge in U flipped, corner white up, LL edges oriented", "pair_state": "edge_flipped_U", "ll_edges": "oriented", "setup": "F' U F R U' R'", "algs": ["R U' R' F' U F", "F U' R U R' F'"] },
+      { "id": "ZBLS_3", "label": "Edge in slot oriented, corner in U white front, LL edges oriented", "pair_state": "edge_in_slot_correct", "ll_edges": "oriented", "setup": "R U R' U' R U R'", "algs": ["R U' R' U R U' R'", "F' U' F U R U' R'"] },
+      { "id": "ZBLS_4", "label": "Edge in slot flipped, corner in U, LL edges oriented", "pair_state": "edge_in_slot_flipped", "ll_edges": "oriented", "setup": "R' F R F' R U R'", "algs": ["R U' R' F R' F' R", "R' F' R U R U' R' F"] },
+      { "id": "ZBLS_5", "label": "Connected pair in U, insert as RU'R', LL edges oriented", "pair_state": "connected_RU'R'", "ll_edges": "oriented", "setup": "R U R'", "algs": ["R U' R'"] },
+      { "id": "ZBLS_6", "label": "Connected pair in U, insert as RUR', LL edges oriented", "pair_state": "connected_RUR'", "ll_edges": "oriented", "setup": "R U' R'", "algs": ["R U R'"] },
+      { "id": "ZBLS_7", "label": "Pair in wrong position, LL edges oriented — Jeff2L style with EO", "pair_state": "jeff2l_eo", "ll_edges": "oriented", "setup": "L' R U L U' R'", "algs": ["L' R U L U' R'", "R U' R' L U' L'"] },
+      { "id": "ZBLS_8", "label": "Both pieces in slots, LL edges oriented — non-U case", "pair_state": "both_in_slots", "ll_edges": "oriented", "setup": "R U2 R' U R U2 R'", "algs": ["R U2 R' U R U2 R'", "R U' R' U R U2 R'"] }
+    ]
+  },
+
+  "mgls_cases": {
+    "description": "MGLS (Makisumi-Garron Last Slot) — last F2L slot cases that also influence OLL. Two subsets: CLS (Corner Last Slot) and ELS (Edge Last Slot) with OLL orientation control.",
+    "cases": [
+      { "id": "MGLS_CLS_1", "label": "CLS: corner in U white up, edge solved, orient LL edges as bonus", "subset": "CLS", "setup": "R U' R' U R U R'", "algs": ["R U R' U' R U' R'", "U' R U' R' U R U R'"] },
+      { "id": "MGLS_CLS_2", "label": "CLS: corner in U white front, edge solved", "subset": "CLS", "setup": "F' U' F R U R'", "algs": ["R U' R' F' U F", "U R U R' F' U F R U' R'"] },
+      { "id": "MGLS_CLS_3", "label": "CLS: corner in U white right, edge solved", "subset": "CLS", "setup": "R U2 R' U' R U R'", "algs": ["R U' R' U R U' R'", "R U2 R' U' R U R'"] },
+      { "id": "MGLS_CLS_4", "label": "CLS: corner in wrong slot, edge solved — D-layer extract", "subset": "CLS", "setup": "R U R' D R U' R' D'", "algs": ["D R U R' D' R U' R'", "R' D R U' R' D' R U R U' R'"] },
+      { "id": "MGLS_ELS_1", "label": "ELS: edge in U, corner solved, orient LL corners", "subset": "ELS", "setup": "F' U' F", "algs": ["F' U F", "y' R' U' R"] },
+      { "id": "MGLS_ELS_2", "label": "ELS: edge in U flipped, corner solved", "subset": "ELS", "setup": "F' U F U F' U' F", "algs": ["F' U' F U F' U F", "U R' F R F' R' F R F'"] },
+      { "id": "MGLS_ELS_3", "label": "ELS: edge in wrong slot, corner solved — EO preserving", "subset": "ELS", "setup": "R' U2 R U' L' U L R' U R", "algs": ["R' U' R L' U L", "F' L F L' R U' R'"] }
+    ]
+  },
+
+  "all_slot_angles": {
+    "description": "The 41 standard cases × 4 slot positions (FR, FL, BL, BR) without cube rotation. These are rotation-free algs for solving each case when the target slot is not FR. Based on Feliks Zemdegs / CubeSkills all-slot-angles PDF.",
+    "note": "For each case, FR alg is the standard. FL/BL/BR use y-rotation equivalents or dedicated algs. Only non-obvious slot variants are listed here.",
+    "cases": [
+      { "id": "SA_F2L1_FL", "label": "F2L Case 1 into FL slot (no rotation)", "target_slot": "FL", "base_case": "F2L_1", "algs": ["y' U R U' R'", "d R U' R'"] },
+      { "id": "SA_F2L1_BL", "label": "F2L Case 1 into BL slot", "target_slot": "BL", "base_case": "F2L_1", "algs": ["y2 U R U' R'", "U L U' L'"] },
+      { "id": "SA_F2L1_BR", "label": "F2L Case 1 into BR slot", "target_slot": "BR", "base_case": "F2L_1", "algs": ["y U R U' R'", "d' L U' L'"] },
+      { "id": "SA_F2L5_FL", "label": "F2L Case 5 into FL slot", "target_slot": "FL", "base_case": "F2L_5", "algs": ["U' R' F r U' r' F' R", "U2 F R U R' U2 F'"] },
+      { "id": "SA_F2L5_BL", "label": "F2L Case 5 into BL slot", "target_slot": "BL", "base_case": "F2L_5", "algs": ["y2 U' R U R' U2 R U' R'", "U' L U L' U2 L U' L'"] },
+      { "id": "SA_F2L5_BR", "label": "F2L Case 5 into BR slot", "target_slot": "BR", "base_case": "F2L_5", "algs": ["y U' R' F R U R' U' F' R", "R2 F' U' F U R2"] },
+      { "id": "SA_F2L13_FL", "label": "F2L Case 13 into FL slot (connected pair)", "target_slot": "FL", "base_case": "F2L_13", "algs": ["U L' U L U' L' U' L", "d L' U L U' L' U' L"] },
+      { "id": "SA_F2L13_BL", "label": "F2L Case 13 into BL slot", "target_slot": "BL", "base_case": "F2L_13", "algs": ["y2 U R' U R U' R' U' R", "U L' U L U' L' U' L"] },
+      { "id": "SA_F2L13_BR", "label": "F2L Case 13 into BR slot", "target_slot": "BR", "base_case": "F2L_13", "algs": ["y U R' U R U' R' U' R", "d' R' U R U' R' U' R"] },
+      { "id": "SA_F2L17_FL", "label": "F2L Case 17 into FL slot", "target_slot": "FL", "base_case": "F2L_17", "algs": ["y L U2 L' U' L U L'"] },
+      { "id": "SA_F2L17_BL", "label": "F2L Case 17 into BL slot", "target_slot": "BL", "base_case": "F2L_17", "algs": ["L U2 L' U' L U L'"] },
+      { "id": "SA_F2L17_BR", "label": "F2L Case 17 into BR slot", "target_slot": "BR", "base_case": "F2L_17", "algs": ["y' L U2 L' U' L U L'", "y2 R U2 R' U' R U R'"] }
+    ]
+  },
+
+  "corner_orientation_variants": {
+    "description": "Complete enumeration of corner orientation states when corner is in the U layer. Each orientation combined with each edge state = a unique F2L sub-case. Used for pattern matching.",
+    "cases": [
+      { "id": "CO_1", "label": "Corner white facing UP (U sticker up)", "orientation": "white_up", "sticker_position": "U_face", "typical_alg_family": "Double-trigger or U2 insert" },
+      { "id": "CO_2", "label": "Corner white facing FRONT (toward solver)", "orientation": "white_front", "sticker_position": "F_face_of_URF", "typical_alg_family": "R U R' family" },
+      { "id": "CO_3", "label": "Corner white facing RIGHT", "orientation": "white_right", "sticker_position": "R_face_of_URF", "typical_alg_family": "F U F' or R U2 R' family" },
+      { "id": "CO_4", "label": "Corner at UFL white facing UP", "orientation": "white_up_UFL", "sticker_position": "U_face_UFL", "typical_alg_family": "L' U L then insert" },
+      { "id": "CO_5", "label": "Corner at UFL white facing FRONT-LEFT", "orientation": "white_frontleft_UFL", "sticker_position": "F_face_UFL", "typical_alg_family": "L U L' family" },
+      { "id": "CO_6", "label": "Corner at UBR white facing UP", "orientation": "white_up_UBR", "sticker_position": "U_face_UBR", "typical_alg_family": "R' U R or U2 setup" },
+      { "id": "CO_7", "label": "Corner at UBL white facing UP", "orientation": "white_up_UBL", "sticker_position": "U_face_UBL", "typical_alg_family": "L' U' L or setup then insert" }
+    ]
+  },
+
+  "edge_orientation_variants": {
+    "description": "Complete enumeration of edge orientation states when edge is in the U layer. Used for pattern matching.",
+    "cases": [
+      { "id": "EO_1", "label": "Edge at UF, non-white sticker facing FRONT (correct orientation for FR insert)", "position": "UF", "orientation": "correct", "recognition": "matching color faces you" },
+      { "id": "EO_2", "label": "Edge at UF, non-white sticker facing UP (flipped)", "position": "UF", "orientation": "flipped", "recognition": "matching color faces up instead of front" },
+      { "id": "EO_3", "label": "Edge at UR, non-white sticker facing RIGHT", "position": "UR", "orientation": "correct_for_BR", "recognition": "AUF needed for FR target" },
+      { "id": "EO_4", "label": "Edge at UR, non-white sticker facing UP (flipped)", "position": "UR", "orientation": "flipped", "recognition": "U' AUF then handle as flipped" },
+      { "id": "EO_5", "label": "Edge at UB, non-white sticker facing BACK", "position": "UB", "orientation": "correct_for_BR", "recognition": "U2 AUF for FR target" },
+      { "id": "EO_6", "label": "Edge at UB, non-white sticker facing UP (flipped)", "position": "UB", "orientation": "flipped", "recognition": "U2 then treat as flipped" },
+      { "id": "EO_7", "label": "Edge at UL, non-white sticker facing LEFT", "position": "UL", "orientation": "correct_for_FL", "recognition": "U AUF for FR target" },
+      { "id": "EO_8", "label": "Edge at UL, non-white sticker facing UP (flipped)", "position": "UL", "orientation": "flipped", "recognition": "U then treat as flipped" }
+    ]
+  },
+
+  "f2l_recognition_patterns": {
+    "description": "Recognition patterns for identifying F2L cases quickly during a solve. Not algs, but the state signatures Codex should match against.",
+    "patterns": [
+      { "id": "REC_1", "label": "Both pieces in U layer", "corner_loc": "U_layer", "edge_loc": "U_layer", "maps_to": "F2L_1 through F2L_24 (standard cases 1-24)" },
+      { "id": "REC_2", "label": "Corner in U, edge in correct slot", "corner_loc": "U_layer", "edge_loc": "target_slot", "maps_to": "F2L_31 through F2L_36 (edge in slot cases)" },
+      { "id": "REC_3", "label": "Corner in correct slot, edge in U", "corner_loc": "target_slot", "edge_loc": "U_layer", "maps_to": "F2L_25 through F2L_30 (corner in slot cases)" },
+      { "id": "REC_4", "label": "Both pieces in target slot (solved or misoriented)", "corner_loc": "target_slot", "edge_loc": "target_slot", "maps_to": "F2L_37 through F2L_41 (pieces in slot cases)" },
+      { "id": "REC_5", "label": "Corner in wrong adjacent slot, edge in U", "corner_loc": "adjacent_slot", "edge_loc": "U_layer", "maps_to": "Jeff2L corner wrong slot (J2L_C series)" },
+      { "id": "REC_6", "label": "Edge in wrong adjacent slot, corner in U", "corner_loc": "U_layer", "edge_loc": "adjacent_slot", "maps_to": "Jeff2L edge wrong slot (J2L_E series)" },
+      { "id": "REC_7", "label": "Both pieces in wrong slots, not in U", "corner_loc": "wrong_slot", "edge_loc": "wrong_slot", "maps_to": "Jeff2L both wrong (J2L_B series)" },
+      { "id": "REC_8", "label": "Corner in diagonal slot (BL when target is FR)", "corner_loc": "diagonal_slot", "edge_loc": "any", "maps_to": "Jeff2L diagonal (J2L_D series)" },
+      { "id": "REC_9", "label": "Extra open slot available, pieces in U", "corner_loc": "U_layer", "edge_loc": "U_layer", "open_slot": "true", "maps_to": "Open slot cases (OS series)" },
+      { "id": "REC_10", "label": "Last pair — only one slot left unsolved", "state": "3_slots_solved", "maps_to": "WV / SV / VLS / HLS / ZBLS" },
+      { "id": "REC_11", "label": "Last pair, all LL edges oriented", "state": "3_slots_solved_EO_done", "maps_to": "WV (RU'R' form) or SV (RUR' form)" },
+      { "id": "REC_12", "label": "Last pair, some LL edges misoriented", "state": "3_slots_solved_EO_bad", "maps_to": "VLS subsets UF/UL/UB/UFUL/ULUB/UFUB/ALL" },
+      { "id": "REC_13", "label": "Only corner left — edge already in slot", "state": "edge_solved", "maps_to": "CLS cases" },
+      { "id": "REC_14", "label": "Only edge left — corner already in slot", "state": "corner_solved", "maps_to": "ELS cases" }
+    ]
+  },
+
+  "misc_edge_cases": {
+    "description": "Miscellaneous edge cases not covered elsewhere — parity-adjacent states, pieces in D layer, unique extraction patterns.",
+    "cases": [
+      {
+        "id": "MISC_1",
+        "label": "Corner in D layer (fell through) — extract with D move",
+        "corner_loc": "D_layer",
+        "edge_loc": "U_layer",
+        "setup": "R U' R' U R U' R' D R U R' D'",
+        "algs": ["D R U R' D'", "R D R' U' R D' R'"],
+        "note": "Rare but happens if a previous alg goes wrong. D move extracts the corner."
+      },
+      {
+        "id": "MISC_2",
+        "label": "Edge in D layer (fell through, only possible by mistake)",
+        "corner_loc": "U_layer",
+        "edge_loc": "D_layer",
+        "setup": "D' F' U F D",
+        "algs": ["D' F' U' F D", "F D F' D' then standard"],
+        "note": "Should not happen in normal solve — edge in D layer indicates prior error."
+      },
+      {
+        "id": "MISC_3",
+        "label": "Corner misoriented in solved D layer slot — white NOT facing down",
+        "corner_loc": "D_slot_wrong_orient",
+        "edge_loc": "solved",
+        "setup": "R U R' U' R U' R' (triple trigger sets up)",
+        "algs": ["(R U R' U') x3", "R U2 R' U R U2 R'"],
+        "note": "Called the sexy-move loop. Three repetitions of R U R' U' fixes a twisted corner."
+      },
+      {
+        "id": "MISC_4",
+        "label": "Edge oriented wrong in D layer slot (flipped middle layer edge)",
+        "corner_loc": "solved",
+        "edge_loc": "D_slot_flipped",
+        "setup": "R U R' U' R U R' F R' F' R",
+        "algs": ["R U' R' F' R U R' U' R' F R", "F R U R' U' F' R U' R'"],
+        "note": "Middle layer edge flip. Needs F or B move to correct orientation."
+      },
+      {
+        "id": "MISC_5",
+        "label": "Both pieces in U, but already paired incorrectly (wrong-color pseudo-pair)",
+        "corner_loc": "U_layer",
+        "edge_loc": "U_layer",
+        "pair_state": "wrong_color_touching",
+        "setup": "R U' L' U R' U' L",
+        "algs": ["U R U' R' U L' U' L", "R U' R' L' U L U' y R U' R' y'"],
+        "note": "Corner and edge are touching but don't match. Must separate before pairing correct pieces."
+      },
+      {
+        "id": "MISC_6",
+        "label": "FR slot half-open — only corner solved, edge missing entirely from slot",
+        "corner_loc": "FR_slot_correct",
+        "edge_loc": "U_layer",
+        "pair_state": "corner_correct_only",
+        "algs": ["U' F' U F", "y' U R' U' R", "F' U2 F"],
+        "note": "Same as ELS but more general — just need to insert the edge cleanly."
+      },
+      {
+        "id": "MISC_7",
+        "label": "FR slot half-open — only edge solved, corner missing from slot",
+        "corner_loc": "U_layer",
+        "edge_loc": "FR_slot_correct",
+        "pair_state": "edge_correct_only",
+        "algs": ["R U' R' U R U R'", "R U2 R' U' R U' R'"],
+        "note": "Same as CLS. Insert corner without disturbing the existing edge."
+      },
+      {
+        "id": "MISC_8",
+        "label": "Cross-1 — one cross edge still unsolved, F2L pair available",
+        "corner_loc": "U_layer",
+        "edge_loc": "U_layer",
+        "cross_state": "cross_minus_1",
+        "algs": ["Depends on which cross edge is missing — M' U2 M or F U F' style"],
+        "note": "Cross-1 technique. Allows M-slice usage in F2L. Inserts the last cross edge and F2L pair together."
+      },
+      {
+        "id": "MISC_9",
+        "label": "Forced F2L — all 4 F2L pieces are in the U layer (best case start)",
+        "corner_loc": "U_layer",
+        "edge_loc": "U_layer",
+        "pair_count": 4,
+        "algs": ["Plan all 4 insertions during inspection", "Solve in order of difficulty: easy pairs first"],
+        "note": "All pieces available at once. Lookahead determines optimal pair order."
+      },
+      {
+        "id": "MISC_10",
+        "label": "Skip — F2L pair already solved after cross",
+        "state": "pair_solved",
+        "algs": ["(no moves required)"],
+        "note": "Lucky case — pair was inserted during cross solution. Occurs ~1 in 40 pairs."
+      },
+      {
+        "id": "MISC_11",
+        "label": "OLL-during-F2L — last pair setup coincidentally orients LL",
+        "state": "oll_skip_trigger",
+        "algs": ["Recognize by looking at LL corner orientations before final insert"],
+        "note": "If LL corners are favorable, choose a WV/VLS alg over standard F2L insert."
+      },
+      {
+        "id": "MISC_12",
+        "label": "F2L at wrong slot — correct pair inserted into wrong slot by mistake",
+        "state": "pair_in_wrong_slot",
+        "algs": ["R U R' (extract)", "AUF", "re-insert correctly"],
+        "note": "Common beginner/intermediate mistake. Extract with R U R', then AUF and reinsert."
+      }
+    ]
+  }
+}
