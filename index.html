@@ -335,6 +335,46 @@
       backdrop-filter: blur(22px);
     }
 
+    #stepMovesPanel {
+      position: absolute;
+      left: 24px;
+      top: 238px;
+      width: 248px;
+      max-height: calc(100% - 238px - 190px);
+      overflow: auto;
+      z-index: 2;
+    }
+
+    #stepMovesPanel summary {
+      list-style: none;
+      cursor: pointer;
+    }
+
+    #stepMovesPanel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    #stepMovesPanel .summary-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    #stepMovesPanel .chevron {
+      color: #9ca3af;
+      font-size: 0.95rem;
+      transition: transform 160ms ease;
+    }
+
+    #stepMovesPanel[open] .chevron {
+      transform: rotate(90deg);
+    }
+
+    #stepMovesBody {
+      margin-top: 10px;
+    }
+
     #zoomControl .label-row {
       display: flex;
       justify-content: space-between;
@@ -420,7 +460,7 @@
       right: 388px;
       bottom: 24px;
       display: grid;
-      grid-template-columns: minmax(240px, 320px) minmax(260px, 360px);
+      grid-template-columns: minmax(260px, 360px);
       gap: 14px;
       align-items: end;
       pointer-events: none;
@@ -631,6 +671,33 @@
       gap: 10px;
     }
 
+    .color-editor-facebar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .color-editor-faceinfo {
+      display: grid;
+      gap: 4px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .color-editor-facename {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-strong);
+    }
+
+    .color-editor-orientation {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-dim);
+      max-width: 420px;
+    }
+
     #colorEditorBackdrop {
       display: none;
       position: fixed;
@@ -670,7 +737,7 @@
     }
 
     #colorEditorModal #colorEditorNet {
-      width: min(780px, calc(100vw - 96px));
+      width: min(520px, calc(100vw - 120px));
       max-width: none;
       margin-top: 0;
       border-color: rgba(255,255,255,0.14);
@@ -858,6 +925,69 @@
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.02);
+    }
+
+    .scanner-preview-note {
+      margin-top: 8px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: #9aa3b2;
+      text-align: center;
+    }
+
+    .scanner-review {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: grid;
+      gap: 10px;
+    }
+
+    .scanner-review.hidden {
+      display: none;
+    }
+
+    .scanner-review-title {
+      font-size: 0.8rem;
+      color: #9aa3b2;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+
+    .scanner-color-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .scanner-color-btn {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 6px 0;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+
+    .scanner-color-btn.active {
+      box-shadow: 0 0 0 2px var(--accent);
+      transform: translateY(-1px);
+    }
+
+    #scannerFaceEditorNet {
+      width: 100%;
+      max-width: 220px;
+      height: auto;
+      justify-self: center;
+      cursor: pointer;
+    }
+
+    .scanner-review-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
     }
 
     .scanner-toolbar {
@@ -1102,6 +1232,14 @@
             <div class="color-editor-sheet">
               <div class="label">Color Editor</div>
               <div class="mini-note">Paint the stickers below, then load that cube state directly. Press <strong>Esc</strong> to close and auto-load the colors.</div>
+              <div class="color-editor-facebar">
+                <button id="colorEditorPrevFace" class="tiny-btn" type="button">Previous Face</button>
+                <div class="color-editor-faceinfo">
+                  <div id="colorEditorFaceName" class="color-editor-facename">Yellow Face</div>
+                  <div id="colorEditorOrientation" class="color-editor-orientation">Top: Orange. Bottom: Red. Left: Blue. Right: Green.</div>
+                </div>
+                <button id="colorEditorNextFace" class="tiny-btn" type="button">Next Face</button>
+              </div>
               <div class="color-picker-row">
                 <button id="editorColorU" class="color-swatch-btn active" type="button" style="background:#FFD500; color:#111;">Yellow</button>
                 <button id="editorColorD" class="color-swatch-btn" type="button" style="background:#FFFFFF; color:#111;">White</button>
@@ -1110,7 +1248,7 @@
                 <button id="editorColorR" class="color-swatch-btn" type="button" style="background:#009B48;">Green</button>
                 <button id="editorColorL" class="color-swatch-btn" type="button" style="background:#0045AD;">Blue</button>
               </div>
-              <canvas id="colorEditorNet" width="420" height="340" aria-label="Color editor net"></canvas>
+              <canvas id="colorEditorNet" width="360" height="360" aria-label="Color editor face"></canvas>
               <div class="tiny-actions">
                 <button id="resetEditorBtn" class="tiny-btn" type="button">Reset Editor</button>
                 <button id="loadEditorStateBtn" class="tiny-btn" type="button">Load Colors</button>
@@ -1189,11 +1327,18 @@
         <div class="label">Beginner Teacher</div>
         <div id="beginnerTeacher" class="value hint">Select Beginner to see guided lesson text for each step.</div>
       </section>
-      <div id="viewportDock">
-        <section class="dock-panel">
-          <div class="label">Step Moves</div>
+      <details class="dock-panel" id="stepMovesPanel">
+        <summary>
+          <div class="summary-row">
+            <div class="label">Step Moves</div>
+            <span class="chevron">›</span>
+          </div>
+        </summary>
+        <div id="stepMovesBody">
           <div id="stepMoves" class="value hint">No beginner solve breakdown yet.</div>
-        </section>
+        </div>
+      </details>
+      <div id="viewportDock">
         <section class="dock-panel">
           <div class="label">Status</div>
           <div id="statusText" class="value hint">Press New Case for OLL/PLL drills, or switch to FREE for unrestricted turning.</div>
@@ -1318,11 +1463,28 @@
           <canvas id="cubeScannerOverlay" width="720" height="540"></canvas>
           <div class="scanner-video-hint">Show one face only, keep it flat to the camera, keep the top row level, and fill the square guide before pressing <strong>Capture Face</strong>.</div>
         </div>
-        <div class="scanner-preview">
-          <canvas id="cubeScannerPreviewNet" width="300" height="230"></canvas>
+          <div class="scanner-preview">
+            <canvas id="cubeScannerPreviewNet" width="300" height="320"></canvas>
+            <div class="scanner-preview-note">Top preview shows the live detected 3x3. Bottom preview shows captured faces.</div>
+            <div id="scannerReview" class="scanner-review hidden">
+              <div class="scanner-review-title">Review Captured Face</div>
+              <div class="scanner-color-row">
+                <button id="scannerColorU" class="scanner-color-btn" type="button" style="background:#FFD500;color:#111;">Yellow</button>
+                <button id="scannerColorD" class="scanner-color-btn" type="button" style="background:#FFFFFF;color:#111;">White</button>
+                <button id="scannerColorF" class="scanner-color-btn" type="button" style="background:#B90000;color:#fff;">Red</button>
+                <button id="scannerColorB" class="scanner-color-btn" type="button" style="background:#FF5900;color:#fff;">Orange</button>
+                <button id="scannerColorR" class="scanner-color-btn" type="button" style="background:#009B48;color:#fff;">Green</button>
+                <button id="scannerColorL" class="scanner-color-btn" type="button" style="background:#0045AD;color:#fff;">Blue</button>
+              </div>
+              <canvas id="scannerFaceEditorNet" width="220" height="220"></canvas>
+              <div class="scanner-review-actions">
+                <button id="scannerRescanBtn" class="action-btn" type="button">Rescan Face</button>
+                <button id="scannerUseFaceBtn" class="action-btn" type="button">Use Face</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
   </div>
 
   <script type="module" src="/src/main.ts"></script>
