@@ -204,7 +204,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         stats: "rubiks-trainer-stats-v1",
         speed: "rubiks-trainer-speed-v1",
         solveMethod: "rubiks-trainer-solve-method-v1",
-        solveScope: "rubiks-trainer-solve-scope-v1"
+        solveScope: "rubiks-trainer-solve-scope-v1",
+        practiceScramble: "rubiks-trainer-practice-scramble-v1"
       };
       buildFaceletMaps();
 
@@ -308,6 +309,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const customScrambleInputEl = document.getElementById("customScrambleInput");
       const loadScrambleBtn = document.getElementById("loadScrambleBtn");
       const scanCubeBtn = document.getElementById("scanCubeBtn");
+      const savePracticeScrambleBtn = document.getElementById("savePracticeScrambleBtn");
+      const loadPracticeScrambleBtn = document.getElementById("loadPracticeScrambleBtn");
       const colorEditorNetEl = document.getElementById("colorEditorNet");
       const colorEditorNetCtx = colorEditorNetEl?.getContext("2d");
       const colorEditorExpanderEl = document.getElementById("colorEditorExpander");
@@ -790,6 +793,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         undoBtn.addEventListener("click", undoLastMove);
         showScrambleBtn.addEventListener("click", replayCurrentScramble);
         loadScrambleBtn?.addEventListener("click", loadCustomScramble);
+        savePracticeScrambleBtn?.addEventListener("click", savePracticeScramble);
+        loadPracticeScrambleBtn?.addEventListener("click", loadSavedPracticeScramble);
         scanCubeBtn?.addEventListener("click", openCubeScanner);
         resetEditorBtn?.addEventListener("click", resetColorEditor);
         loadEditorStateBtn?.addEventListener("click", loadEditorState);
@@ -913,7 +918,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           closeColorEditor(false);
         });
         startScannerBtn?.addEventListener("click", startCubeScannerCamera);
-        captureScannerBtn?.addEventListener("click", captureCurrentScannerFace);
+        captureScannerBtn?.addEventListener("click", () => captureCurrentScannerFace());
         scannerUseFaceBtn?.addEventListener("click", acceptCurrentScannerFace);
         scannerRescanBtn?.addEventListener("click", clearPendingScannerFace);
         scannerFaceEditorNetEl?.addEventListener("click", onScannerFaceEditorClick);
@@ -1230,6 +1235,39 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         updateUi();
       }
 
+      function savePracticeScramble() {
+        const scramble = String(state.currentSetupAlgorithm || "").trim();
+        if (!scramble) {
+          statusTextEl.textContent = "There is no scramble to save yet.";
+          updateUi();
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEYS.practiceScramble, scramble);
+          statusTextEl.textContent = `Saved scramble for practice.`;
+        } catch (error) {
+          statusTextEl.textContent = "Could not save the scramble in this browser.";
+        }
+        updateUi();
+      }
+
+      function loadSavedPracticeScramble() {
+        let scramble = "";
+        try {
+          scramble = String(localStorage.getItem(STORAGE_KEYS.practiceScramble) || "").trim();
+        } catch (error) {}
+        const moves = parseAlgorithm(scramble);
+        if (!moves.length) {
+          statusTextEl.textContent = "No saved scramble found yet.";
+          updateUi();
+          return;
+        }
+        if (customScrambleInputEl) {
+          customScrambleInputEl.value = scramble;
+        }
+        loadCustomScramble();
+      }
+
       function resetColorEditor() {
         colorEditorState = createSolvedState();
         state.editorCurrentFace = "U";
@@ -1294,6 +1332,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         if (loadOnClose) {
           colorEditorState = cloneState(cubeScanner.captured);
           drawColorEditorNet();
+          state.editorCurrentFace = "U";
+          state.editorSelectedFace = "U";
+          if (colorEditorExpanderEl && !colorEditorExpanderEl.open) {
+            colorEditorExpanderEl.open = true;
+          }
           loadEditorState();
         }
       }
@@ -1549,7 +1592,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const detailed = precomputedDetailed
           ? precomputedDetailed
           : (cubeScanner.lastDetailed || sampleScannerFaceDetailed());
-        const captured = detailed?.face || null;
+        const captured = detailed ? mirrorScannerFaceDetailed(detailed).face : null;
         const verification = verifyScannerCapture(face, detailed);
         if (!captured) {
           if (cubeScannerStatusEl) {
@@ -1585,7 +1628,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const captured = cubeScanner.pendingDetected;
         if (!face || !captured) return;
 
-        cubeScanner.captured[face] = captured.slice();
+        const normalized = captured.slice();
+        normalized[4] = face;
+        cubeScanner.captured[face] = normalized;
         cubeScanner.index += 1;
         cubeScanner.lastDetailed = null;
         cubeScanner.history = [];
@@ -1650,6 +1695,14 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           smoothedConfidences.push(totalConfidence / Math.max(cubeScanner.history.length, 1));
         }
         return { face: smoothedFace, confidences: smoothedConfidences };
+      }
+
+      function mirrorScannerFaceDetailed(detailed) {
+        const indexMap = [2, 1, 0, 5, 4, 3, 8, 7, 6];
+        return {
+          face: indexMap.map((index) => detailed.face[index]),
+          confidences: indexMap.map((index) => detailed.confidences[index])
+        };
       }
 
       function sampleScannerFaceDetailed() {
@@ -2146,6 +2199,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         state.currentSetupAlgorithm = "";
         state.setupHistory = [];
         state.userHistory = [];
+        for (const face of FACE_ORDER) {
+          colorEditorState[face][4] = face;
+        }
         cube = cloneState(colorEditorState);
         resetStats();
         syncCubeMaterials();
