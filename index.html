@@ -250,13 +250,15 @@
     }
 
     .algo {
-      padding: 12px;
+      padding: 12px 14px;
       border-radius: 12px;
       background: rgba(8, 9, 13, 0.86);
       border: 1px solid rgba(255, 255, 255, 0.06);
       min-height: 50px;
-      font-size: 0.96rem;
-      line-height: 1.55;
+      font-size: 0.94rem;
+      line-height: 1.7;
+      letter-spacing: 0.02em;
+      word-spacing: 0.12em;
       font-family: "SFMono-Regular", "Space Mono", "Cascadia Code", Consolas, monospace;
     }
 
@@ -433,30 +435,39 @@
       width: 100% !important;
       height: auto !important;
       aspect-ratio: 220 / 165;
-      margin-top: 14px;
+      margin-top: 16px;
       flex: 1 1 auto;
+      opacity: 0.72;
     }
 
     .timer-shell {
       width: 100%;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
     }
 
     .timer-shell .label {
-      margin-bottom: 10px;
-      font-size: 0.75rem;
-      color: #666;
+      margin-bottom: 4px;
+      font-size: 0.68rem;
+      color: #444;
+      letter-spacing: 0.14em;
     }
 
     #timer {
-      font-size: 3.2rem;
+      font-size: 5.4rem;
       line-height: 1;
-      letter-spacing: 0.05em;
-      color: #e8e8e8;
+      letter-spacing: 0.04em;
+      color: #d0d4dc;
       font-family: "SFMono-Regular", "Space Mono", "Cascadia Code", Consolas, monospace;
+      font-weight: 700;
+      transition: color 0.25s ease, text-shadow 0.25s ease;
     }
 
     #timer.running {
       color: var(--accent);
+      text-shadow:
+        0 0 40px rgba(0, 200, 150, 0.5),
+        0 0 12px rgba(0, 200, 150, 0.25);
     }
 
     #viewportDock {
@@ -473,10 +484,11 @@
 
     .dock-panel {
       padding: 14px 16px;
-      border: 1px solid rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-top: 1px solid rgba(255,255,255,0.1);
       border-radius: 18px;
-      background: rgba(18, 20, 24, 0.94);
-      box-shadow: var(--soft-shadow);
+      background: rgba(16, 18, 23, 0.96);
+      box-shadow: var(--soft-shadow), inset 0 1px 0 rgba(255,255,255,0.04);
       backdrop-filter: blur(22px);
       pointer-events: auto;
       min-height: 92px;
@@ -563,8 +575,10 @@
     }
 
     #statusText {
-      color: #aaa;
-      font-size: 0.9rem;
+      color: #c2c8d4;
+      font-size: 1rem;
+      line-height: 1.65;
+      font-weight: 400;
     }
 
     .tiny-actions {
@@ -1501,6 +1515,71 @@
       </div>
   </div>
 
+  <script>
+    /* ── Algorithm move colorizer (purely visual, no logic changes) ── */
+    (function () {
+      /* Face → display color */
+      var FACE_COLOR = {
+        U: '#FFD500', u: '#FFD500',
+        D: '#d8dce6', d: '#d8dce6',
+        F: '#e05555', f: '#e05555',
+        B: '#fb8c3a', b: '#fb8c3a',
+        R: '#34d399', r: '#34d399',
+        L: '#60a5fa', l: '#60a5fa',
+        M: '#c084fc', m: '#c084fc',
+        E: '#c084fc', e: '#c084fc',
+        S: '#c084fc', s: '#c084fc',
+        x: '#9ca3af', y: '#9ca3af', z: '#9ca3af',
+      };
+
+      function colorize(text) {
+        return text.trim().split(/\s+/).map(function (token) {
+          var face = token.charAt(0);
+          var color = FACE_COLOR[face];
+          if (!color) return '<span style="color:#9ca3af;">' + token + '</span>';
+          var isPrime = token.indexOf("'") !== -1;
+          var is2    = token.indexOf('2') !== -1;
+          var opacity = isPrime ? '0.68' : '1';
+          var weight  = is2 ? '700' : '500';
+          return (
+            '<span style="color:' + color + ';opacity:' + opacity +
+            ';font-weight:' + weight + ';">' + token + '</span>'
+          );
+        }).join(' ');
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        var el = document.getElementById('algorithm');
+        if (!el) return;
+
+        var lastRaw = '';
+        var busy = false;
+
+        function render() {
+          if (busy) return;
+          if (el.classList.contains('blurred')) return;
+          /* Reconstruct raw text — works whether el has plain text or our spans */
+          var raw = el.textContent.replace(/\s+/g, ' ').trim();
+          if (!raw) return;
+          /* Skip if already rendered for this text */
+          if (raw === lastRaw && el.querySelector('span')) return;
+          busy = true;
+          lastRaw = raw;
+          el.innerHTML = colorize(raw);
+          busy = false;
+        }
+
+        var obs = new MutationObserver(render);
+        obs.observe(el, {
+          childList: true,
+          characterData: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['class'],
+        });
+      });
+    })();
+  </script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
