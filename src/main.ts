@@ -1,14 +1,10 @@
 // @ts-nocheck
-import * as THREE from "three";
 import { OLL_CASES, PLL_CASES } from "./data/cases";
 import {
   FACE_ORDER,
-  FACE_COLORS,
-  OPPOSITE_FACE,
   FACE_COLOR_NAMES,
   faceletMap,
   reverseFaceletMap,
-  cubieFaceMap,
   reverseKey,
   createSolvedState,
   cloneState,
@@ -44,6 +40,7 @@ import {
 } from "./lib/storage";
 import { createCubeScannerController } from "./features/scanner";
 import { createColorEditorController } from "./features/colorEditor";
+import { createCubeViewController } from "./features/cubeView";
 import { createPracticeController } from "./features/practice";
 
 const beginnerSolverWorker = new Worker(new URL("./beginnerSolver.worker.ts", import.meta.url), { type: "module" });
@@ -67,8 +64,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 });
 
 (() => {
-      const HIDDEN_COLOR = "#111111";
-      const MATERIAL_INDEX_TO_FACE = ["R", "L", "U", "D", "F", "B"];
       const MOVE_BINDINGS = {
         u: "U",
         i: "U'",
@@ -90,24 +85,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         g: "L2"
       };
 
-      const FACE_NORMALS = {
-        U: new THREE.Vector3(0, 1, 0),
-        D: new THREE.Vector3(0, -1, 0),
-        F: new THREE.Vector3(0, 0, 1),
-        B: new THREE.Vector3(0, 0, -1),
-        R: new THREE.Vector3(1, 0, 0),
-        L: new THREE.Vector3(-1, 0, 0)
-      };
       const BEGINNER_SEARCH_LIMITS = {
         maxNodes: 120000,
         maxMs: 800
       };
       const SCRAMBLE_REPLAY_DELAY_MS = 1000;
-      const ISOMETRIC_PITCH = 0.8;
-      const DEFAULT_ORBIT_PITCH = -ISOMETRIC_PITCH;
-      const DEFAULT_ORBIT_RADIUS = 12.4;
-      const DEFAULT_ORBIT_YAW = 3 * Math.PI / 4;
-      const ZOOM_RADIUS_DELTA = 3.2;
       const state = {
         mode: "OLL",
         currentCase: null,
@@ -141,7 +123,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       };
 
       let cube = createSolvedState();
-      const cubies = [];
 
       const viewport = document.getElementById("viewport");
       const caseNameEl = document.getElementById("caseName");
@@ -154,7 +135,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const moveFlashEl = document.getElementById("moveFlash");
       const statusFlashEl = document.getElementById("statusFlash");
       const cubeNetEl = document.getElementById("cubeNet");
-      const cubeNetCtx = cubeNetEl.getContext("2d");
       const hiddenFacesEl = document.getElementById("hiddenFaces");
       const zoomSliderEl = document.getElementById("zoomSlider");
       const zoomValueEl = document.getElementById("zoomValue");
@@ -222,60 +202,28 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const modeButtons = Array.from(document.querySelectorAll(".mode-btn"));
       const cfopStepButtons = [cfopCrossBtn, cfopF2LBtn, cfopOllBtn, cfopPllBtn].filter(Boolean);
 
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(0x0a0a0f);
-
-      const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.outputEncoding = THREE.sRGBEncoding;
-      viewport.appendChild(renderer.domElement);
-
-      const hiddenCamera = new THREE.PerspectiveCamera(42, 220 / 165, 0.1, 100);
-      const hiddenRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      hiddenRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      hiddenRenderer.outputEncoding = THREE.sRGBEncoding;
-      hiddenRenderer.setClearColor(0x000000, 0);
-      hiddenFacesEl.appendChild(hiddenRenderer.domElement);
-
-      const ambient = new THREE.AmbientLight(0xffffff, 0.72);
-      scene.add(ambient);
-
-      const keyLight = new THREE.DirectionalLight(0xffffff, 0.82);
-      keyLight.position.set(5, 6, 7);
-      scene.add(keyLight);
-
-      const fillLight = new THREE.DirectionalLight(0x7dd3fc, 0.2);
-      fillLight.position.set(-6, -3, 4);
-      scene.add(fillLight);
-
-      const cubeGroup = new THREE.Group();
-      scene.add(cubeGroup);
-
-      const orbit = {
-        radius: DEFAULT_ORBIT_RADIUS,
-        yaw: DEFAULT_ORBIT_YAW,
-        pitch: DEFAULT_ORBIT_PITCH
-      };
-
-      const pointer = {
-        active: false,
-        x: 0,
-        y: 0
-      };
-
-      const animationState = {
-        queue: [],
-        active: null,
-        durationMs: 180
-      };
-
-      const cameraAnimation = {
-        active: null,
-        durationMs: 180
-      };
       let scrambleReplayTimeout = 0;
       let crossTrainingRequestId = 0;
+      const cubeView = createCubeViewController({
+        viewportEl: viewport,
+        hiddenFacesEl,
+        cubeNetEl,
+        onFrame: () => updateTimerDisplay(),
+        onMoveStart: (job) => {
+          if (job.fromUser && !state.timerRunning && !state.solved) {
+            state.timerRunning = true;
+            state.timerStart = performance.now() - state.elapsedMs;
+          }
+
+          if (job.fromUser) {
+            state.moveCount += 1;
+            showFlash(moveFlashEl, job.displayMove);
+          }
+
+          updateUi();
+        },
+        onMoveComplete: (job) => finalizeMove(job)
+      });
 
       const colorEditorController = createColorEditorController({
         onChange: () => updateUi(),
@@ -348,59 +296,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         setCrossSolution: setCurrentCfopCrossSolution
       });
 
-      initCubies();
+      syncCubeMaterials();
       attachEvents();
       updateZoomFromSlider();
       updateAnimationSpeed();
-      resize();
       practiceController.setMode("FREE");
-      requestAnimationFrame(renderLoop);
-
-      function normalizeAngle(angle) {
-        return Math.atan2(Math.sin(angle), Math.cos(angle));
-      }
-
-      function nearestAngleOnGrid(angle, start, step) {
-        return start + Math.round((angle - start) / step) * step;
-      }
-
-      function getNearestSnappedOrbit() {
-        return {
-          yaw: nearestAngleOnGrid(orbit.yaw, DEFAULT_ORBIT_YAW, Math.PI / 2),
-          pitch: nearestAngleOnGrid(orbit.pitch, DEFAULT_ORBIT_PITCH, Math.PI / 2)
-        };
-      }
-
-      function faceFromVector(vector) {
-        let bestFace = "F";
-        let bestDot = -Infinity;
-        for (const face of FACE_ORDER) {
-          const dot = FACE_NORMALS[face].dot(vector);
-          if (dot > bestDot) {
-            bestDot = dot;
-            bestFace = face;
-          }
-        }
-        return bestFace;
-      }
-
-      function scoreFace(face, vector) {
-        return FACE_NORMALS[face].dot(vector);
-      }
-
-      function pickBestFace(faces, vector, exclude = []) {
-        let bestFace = null;
-        let bestScore = -Infinity;
-        for (const face of faces) {
-          if (exclude.includes(face)) continue;
-          const score = scoreFace(face, vector);
-          if (score > bestScore) {
-            bestScore = score;
-            bestFace = face;
-          }
-        }
-        return bestFace;
-      }
 
       function getCasesForMode(mode) {
         return mode === "PLL" ? PLL_CASES : mode === "OLL" ? OLL_CASES : [];
@@ -412,6 +312,14 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
       function isCurrentGoalSolved() {
         return state.mode === "CROSS" ? isWhiteCrossSolvedState(cube) : isSolved(cube);
+      }
+
+      function hasActiveMoveAnimation() {
+        return cubeView.hasActiveMove();
+      }
+
+      function getNearestSnappedOrbit() {
+        return cubeView.getNearestSnappedOrbit();
       }
 
       function createEmptySessionStats() {
@@ -458,61 +366,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return key ? state.caseStats[key] || null : null;
       }
 
-      function initCubies() {
-        const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-        for (let x = -1; x <= 1; x++) {
-          for (let y = -1; y <= 1; y++) {
-            for (let z = -1; z <= 1; z++) {
-              const materials = MATERIAL_INDEX_TO_FACE.map(() => new THREE.MeshLambertMaterial({ color: HIDDEN_COLOR }));
-              const mesh = new THREE.Mesh(geometry, materials);
-              const basePosition = new THREE.Vector3(x * 1.05, y * 1.05, z * 1.05);
-              mesh.position.copy(basePosition);
-              cubeGroup.add(mesh);
-              cubies.push({ key: `${x},${y},${z}`, coords: { x, y, z }, basePosition, mesh });
-            }
-          }
-        }
-        syncCubeMaterials();
-      }
-
       function attachEvents() {
-        window.addEventListener("resize", resize);
+        window.addEventListener("resize", () => cubeView.resize());
         window.addEventListener("keydown", onKeyDown);
-
-        renderer.domElement.addEventListener("pointerdown", (event) => {
-          pointer.active = true;
-          pointer.x = event.clientX;
-          pointer.y = event.clientY;
-          renderer.domElement.classList.add("dragging");
-          renderer.domElement.setPointerCapture(event.pointerId);
-        });
-
-        renderer.domElement.addEventListener("pointermove", (event) => {
-          if (!pointer.active) return;
-          stopCameraAnimation();
-          const dx = event.clientX - pointer.x;
-          const dy = event.clientY - pointer.y;
-          pointer.x = event.clientX;
-          pointer.y = event.clientY;
-          orbit.yaw -= dx * 0.01;
-          orbit.pitch -= dy * 0.01;
-          clampOrbit();
-        });
-
-        renderer.domElement.addEventListener("pointerup", (event) => {
-          pointer.active = false;
-          renderer.domElement.classList.remove("dragging");
-          renderer.domElement.releasePointerCapture(event.pointerId);
-          snapCameraToNearestDiscreteOrientation(true);
-        });
-
-        renderer.domElement.addEventListener("pointerleave", () => {
-          if (pointer.active) {
-            snapCameraToNearestDiscreteOrientation(true);
-          }
-          pointer.active = false;
-          renderer.domElement.classList.remove("dragging");
-        });
 
         modeButtons.forEach((button) => {
           button.addEventListener("click", () => practiceController.setMode(button.dataset.mode));
@@ -606,33 +462,16 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         filterNoneBtn.addEventListener("click", () => setAllCurrentFilters(false));
       }
 
-      function resize() {
-        const width = viewport.clientWidth;
-        const height = viewport.clientHeight;
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-        renderer.setSize(width, height, false);
-        hiddenCamera.aspect = hiddenFacesEl.clientWidth / hiddenFacesEl.clientHeight;
-        hiddenCamera.updateProjectionMatrix();
-        hiddenRenderer.setSize(hiddenFacesEl.clientWidth, hiddenFacesEl.clientHeight, false);
-      }
-
-      function clampOrbit() {
-        orbit.yaw = normalizeAngle(orbit.yaw);
-        orbit.pitch = normalizeAngle(orbit.pitch);
-      }
-
       function updateZoomFromSlider() {
         const sliderValue = Number(zoomSliderEl.value);
         const normalized = (sliderValue - 50) / 50;
-        orbit.radius = DEFAULT_ORBIT_RADIUS + normalized * ZOOM_RADIUS_DELTA;
+        cubeView.setZoomNormalized(normalized);
         zoomValueEl.textContent = normalized === 0 ? "0" : normalized.toFixed(2);
       }
 
       function updateAnimationSpeed() {
         const ms = Number(speedSliderEl.value || 180);
-        animationState.durationMs = ms;
-        cameraAnimation.durationMs = ms;
+        cubeView.setAnimationDuration(ms);
         speedValueEl.textContent = `${ms}ms`;
         try {
           localStorage.setItem(STORAGE_KEYS.speed, String(ms));
@@ -650,81 +489,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       function resetCameraOrientation() {
-        stopCameraAnimation();
-        orbit.yaw = DEFAULT_ORBIT_YAW;
-        orbit.pitch = DEFAULT_ORBIT_PITCH;
-        updateCamera();
-      }
-
-      function stopCameraAnimation() {
-        cameraAnimation.active = null;
-      }
-
-      function animateCameraStep(deltaYaw, deltaPitch) {
-        stopCameraAnimation();
-        cameraAnimation.active = {
-          fromYaw: orbit.yaw,
-          fromPitch: orbit.pitch,
-          toYaw: orbit.yaw + deltaYaw,
-          toPitch: orbit.pitch + deltaPitch,
-          startedAt: performance.now()
-        };
+        cubeView.resetCameraOrientation();
       }
 
       function animateCameraToOrientation(targetYaw, targetPitch) {
-        stopCameraAnimation();
-        cameraAnimation.active = {
-          fromYaw: orbit.yaw,
-          fromPitch: orbit.pitch,
-          toYaw: targetYaw,
-          toPitch: targetPitch,
-          startedAt: performance.now()
-        };
-      }
-
-      function updateCameraAnimation(now) {
-        if (!cameraAnimation.active) return;
-        const active = cameraAnimation.active;
-        const rawT = Math.min(1, (now - active.startedAt) / cameraAnimation.durationMs);
-        const easedT = 1 - Math.pow(1 - rawT, 3);
-        orbit.yaw = active.fromYaw + (active.toYaw - active.fromYaw) * easedT;
-        orbit.pitch = active.fromPitch + (active.toPitch - active.fromPitch) * easedT;
-        clampOrbit();
-        if (rawT >= 1) {
-          orbit.yaw = active.toYaw;
-          orbit.pitch = active.toPitch;
-          cameraAnimation.active = null;
-        }
-      }
-
-      function updateCamera() {
-        const orientation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(orbit.pitch, orbit.yaw, 0, "YXZ")
-        );
-        const basePosition = new THREE.Vector3(0, 0, orbit.radius).applyQuaternion(orientation);
-        const upVector = new THREE.Vector3(0, 1, 0).applyQuaternion(orientation);
-        camera.position.copy(basePosition);
-        camera.up.copy(upVector);
-        camera.lookAt(0, 0, 0);
-
-        const hiddenOrientation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(-orbit.pitch, orbit.yaw + Math.PI, 0, "YXZ")
-        );
-        const hiddenPosition = new THREE.Vector3(0, 0, orbit.radius).applyQuaternion(hiddenOrientation);
-        const hiddenUp = new THREE.Vector3(0, 1, 0).applyQuaternion(hiddenOrientation);
-        hiddenCamera.position.copy(hiddenPosition);
-        hiddenCamera.up.copy(hiddenUp);
-        hiddenCamera.lookAt(0, 0, 0);
-      }
-
-      function renderLoop(now) {
-        updateMoveAnimation(now);
-        updateCameraAnimation(now);
-        updateCamera();
-        updateTimerDisplay();
-        renderer.render(scene, camera);
-        hiddenRenderer.render(scene, hiddenCamera);
-        requestAnimationFrame(renderLoop);
+        cubeView.animateCameraToOrientation(targetYaw, targetPitch);
       }
 
       async function computeCrossTrainingSolution() {
@@ -839,34 +608,34 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         }
         filterSectionEl.style.display = scramblePracticeMode ? "none" : "";
         if (solveBtn) {
-          solveBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
+        solveBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
         }
-        undoBtn.disabled = animationState.active || state.userHistory.length === 0;
+        undoBtn.disabled = hasActiveMoveAnimation() || state.userHistory.length === 0;
         revealBtn.style.display = crossMode ? "none" : "";
         if (crossRevealBtn) {
-          crossRevealBtn.disabled = animationState.active || state.beginnerSolving || !state.currentCrossOptimalMoves || state.revealed;
+        crossRevealBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving || !state.currentCrossOptimalMoves || state.revealed;
         }
-        showScrambleBtn.disabled = animationState.active || state.beginnerSolving || !!scrambleReplayTimeout || !parseAlgorithm(state.currentSetupAlgorithm || "").length;
+        showScrambleBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving || !!scrambleReplayTimeout || !parseAlgorithm(state.currentSetupAlgorithm || "").length;
         if (loadScrambleBtn) {
-          loadScrambleBtn.disabled = animationState.active || state.beginnerSolving || !String(customScrambleInputEl?.value || "").trim();
+        loadScrambleBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving || !String(customScrambleInputEl?.value || "").trim();
         }
-        colorEditorController.syncUi({ disabled: animationState.active || state.beginnerSolving });
-        toCrossBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toWhiteBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toMiddleBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toYellowCrossBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toLastLayerEdgesBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toCornerOrientationBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        toCornerPermutationBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        beginnerFullSolveBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        cfopCrossBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        cfopF2LBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        cfopOllBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        cfopPllBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
-        cfopNewF2LBtn.disabled = animationState.active || state.beginnerSolving;
-        cfopNewOllBtn.disabled = animationState.active || state.beginnerSolving;
-        cfopNewPllBtn.disabled = animationState.active || state.beginnerSolving;
-        cfopFullSolveBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
+        colorEditorController.syncUi({ disabled: hasActiveMoveAnimation() || state.beginnerSolving });
+        toCrossBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toWhiteBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toMiddleBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toYellowCrossBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toLastLayerEdgesBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toCornerOrientationBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        toCornerPermutationBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        beginnerFullSolveBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        cfopCrossBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        cfopF2LBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        cfopOllBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        cfopPllBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
+        cfopNewF2LBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving;
+        cfopNewOllBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving;
+        cfopNewPllBtn.disabled = hasActiveMoveAnimation() || state.beginnerSolving;
+        cfopFullSolveBtn.disabled = hasActiveMoveAnimation() || state.solved || state.beginnerSolving;
         resetCaseStatsBtn.disabled = scramblePracticeMode || !state.currentCase;
         updateCaseStatsUi();
         updateSessionStatsUi();
@@ -1064,10 +833,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         if (!isMoveSupported(move)) return;
         const job = fromUser ? resolveUserMove(move) : createMoveJob(move, move);
         if (!job) return;
-        animationState.queue.push({ ...job, fromUser });
-        if (!animationState.active) {
-          startNextAnimatedMove();
-        }
+        cubeView.queueMove(job, fromUser);
       }
 
       function showFlash(element, text) {
@@ -1075,73 +841,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         element.classList.remove("flash-visible");
         void element.offsetWidth;
         element.classList.add("flash-visible");
-      }
-
-      function startNextAnimatedMove() {
-        if (animationState.active || animationState.queue.length === 0) return;
-
-        const job = animationState.queue.shift();
-        const layers = job.layers;
-        const axis = layers[0].axis;
-        const pivot = new THREE.Group();
-        const affected = cubies.filter((cubie) => layers.some((layer) => cubie.coords[axis] === layer.layer));
-        cubeGroup.add(pivot);
-
-        for (const cubie of affected) {
-          pivot.attach(cubie.mesh);
-        }
-
-        if (job.fromUser && !state.timerRunning && !state.solved) {
-          state.timerRunning = true;
-          state.timerStart = performance.now() - state.elapsedMs;
-        }
-
-        if (job.fromUser) {
-          state.moveCount += 1;
-          showFlash(moveFlashEl, job.displayMove);
-        }
-
-        animationState.active = {
-          job,
-          layers,
-          axis,
-          pivot,
-          affected,
-          startedAt: performance.now(),
-          currentAngle: 0,
-          targetAngle: layers[0].rotation * (Math.PI / 2) * job.quarterTurns
-        };
-
-        updateUi();
-      }
-
-      function updateMoveAnimation(now) {
-        if (!animationState.active) return;
-
-        const active = animationState.active;
-        const elapsed = now - active.startedAt;
-        const rawT = Math.min(1, elapsed / animationState.durationMs);
-        const easedT = 1 - Math.pow(1 - rawT, 3);
-        const angle = active.targetAngle * easedT;
-        const delta = angle - active.currentAngle;
-        active.currentAngle = angle;
-
-        if (delta !== 0) {
-          if (active.axis === "x") active.pivot.rotateX(delta);
-          if (active.axis === "y") active.pivot.rotateY(delta);
-          if (active.axis === "z") active.pivot.rotateZ(delta);
-        }
-
-        if (rawT < 1) return;
-
-        for (const cubie of active.affected) {
-          cubeGroup.attach(cubie.mesh);
-        }
-        cubeGroup.remove(active.pivot);
-        animationState.active = null;
-        resetCubieTransforms();
-        finalizeMove(active.job);
-        startNextAnimatedMove();
       }
 
       function finalizeMove(job) {
@@ -1182,7 +881,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
       async function solveCubeAnimated() {
         const applied = [...state.setupHistory, ...state.userHistory];
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         let solution = [];
         let statusMessage = "";
         let beginnerError = null;
@@ -1241,7 +940,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       function replayCurrentScramble() {
-        if (animationState.active || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.beginnerSolving) return;
         const moves = parseAlgorithm(state.currentSetupAlgorithm || "");
         if (!moves.length) {
           statusTextEl.textContent = "No scramble or setup is available to replay.";
@@ -1283,7 +982,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToWhiteCross() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "WHITE_CROSS";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing white cross...";
@@ -1320,7 +1019,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCfopCross() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing CFOP cross...";
         updateUi();
@@ -1360,7 +1059,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function startNewF2LPractice() {
-        if (animationState.active || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.beginnerSolving) return;
         clearMoveAnimations();
         resetCameraOrientation();
         state.mode = "FREE";
@@ -1442,7 +1141,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function startNewOllPractice() {
-        if (animationState.active || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.beginnerSolving) return;
         state.beginnerSolving = true;
         statusTextEl.textContent = "Preparing new OLL start...";
         updateUi();
@@ -1461,7 +1160,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function startNewPllPractice() {
-        if (animationState.active || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.beginnerSolving) return;
         state.beginnerSolving = true;
         statusTextEl.textContent = "Preparing new PLL start...";
         updateUi();
@@ -1480,7 +1179,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCfopF2L() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         const hadCross = isWhiteCrossSolvedState(cube);
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing CFOP F2L...";
@@ -1537,7 +1236,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCfopOll() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing CFOP OLL...";
         updateUi();
@@ -1597,7 +1296,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCfopPll() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing CFOP PLL...";
         updateUi();
@@ -1676,7 +1375,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveBeginnerFullCube() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.solveMethod = "BEGINNER";
         solveMethodEl.value = state.solveMethod;
         state.solveScope = "FULL";
@@ -1687,7 +1386,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveCfopFullCube() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.solveMethod = "CFOP";
         solveMethodEl.value = state.solveMethod;
         state.beginnerSolving = true;
@@ -1826,7 +1525,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
 
       async function solveToMiddleLayer() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "MIDDLE_LAYER";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing middle layer...";
@@ -1863,7 +1562,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToWhiteFace() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "WHITE_CORNERS";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing white face...";
@@ -1900,7 +1599,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToYellowCross() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "YELLOW_CROSS";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing yellow cross...";
@@ -1937,7 +1636,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToLastLayerEdges() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "LAST_LAYER_EDGES";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing last layer edges...";
@@ -1973,7 +1672,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCornerOrientation() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "LAST_LAYER_CORNERS_ORIENTATION";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing corner orientation...";
@@ -2009,7 +1708,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       async function solveToCornerPermutation() {
-        if (animationState.active || state.solved || state.beginnerSolving) return;
+        if (hasActiveMoveAnimation() || state.solved || state.beginnerSolving) return;
         state.beginnerLessonKey = "LAST_LAYER_CORNERS_PERMUTATION";
         state.beginnerSolving = true;
         statusTextEl.textContent = "Computing corner permutation...";
@@ -2371,7 +2070,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       function undoLastMove() {
-        if (animationState.active || state.userHistory.length === 0) return;
+        if (hasActiveMoveAnimation() || state.userHistory.length === 0) return;
         const move = state.userHistory.pop();
         state.moveCount = Math.max(0, state.moveCount - 1);
         performMove(invertMove(move), false);
@@ -2775,63 +2474,15 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           window.clearTimeout(scrambleReplayTimeout);
           scrambleReplayTimeout = 0;
         }
-        animationState.queue.length = 0;
-
-        if (animationState.active) {
-          for (const cubie of animationState.active.affected) {
-            cubeGroup.attach(cubie.mesh);
-          }
-          cubeGroup.remove(animationState.active.pivot);
-          animationState.active = null;
-        }
-
-        resetCubieTransforms();
-      }
-
-      function resetCubieTransforms() {
-        for (const cubie of cubies) {
-          cubie.mesh.position.copy(cubie.basePosition);
-          cubie.mesh.rotation.set(0, 0, 0);
-        }
+        cubeView.clearMoveAnimations();
       }
 
       function snapCameraToNearestDiscreteOrientation(animate = false) {
-        const orientation = getNearestSnappedOrbit();
-        if (animate) {
-          animateCameraToOrientation(orientation.yaw, orientation.pitch);
-        } else {
-          stopCameraAnimation();
-          orbit.yaw = orientation.yaw;
-          orbit.pitch = orientation.pitch;
-          updateCamera();
-        }
-        return orientation;
+        return cubeView.snapCameraToNearestDiscreteOrientation(animate);
       }
 
       function getNearestDiscreteCameraOrientation() {
-        const snapped = getNearestSnappedOrbit();
-        const orientation = new THREE.Quaternion().setFromEuler(
-          new THREE.Euler(snapped.pitch, snapped.yaw, 0, "YXZ")
-        );
-        const cameraPosition = new THREE.Vector3(0, 0, orbit.radius).applyQuaternion(orientation);
-        const frontVector = new THREE.Vector3(0, 0, 1).applyQuaternion(orientation);
-        const rightVector = new THREE.Vector3(1, 0, 0).applyQuaternion(orientation);
-        const upVector = new THREE.Vector3(0, 1, 0).applyQuaternion(orientation);
-        const visibleFaces = FACE_ORDER.filter((face) => scoreFace(face, cameraPosition) > 0);
-        const upFace = pickBestFace(visibleFaces, upVector);
-        const rightFace = pickBestFace(visibleFaces, rightVector, [upFace]);
-        const frontFace = pickBestFace(visibleFaces, frontVector, [upFace, rightFace]);
-
-        return {
-          yaw: snapped.yaw,
-          pitch: snapped.pitch,
-          frontFace,
-          rightFace,
-          upFace,
-          frontVector,
-          rightVector,
-          upVector
-        };
+        return cubeView.getNearestDiscreteCameraOrientation();
       }
 
       function resolveUserMove(move) {
@@ -2857,14 +2508,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       function getViewFaceMapping(orientation = getNearestDiscreteCameraOrientation()) {
-        return {
-          F: orientation.frontFace,
-          B: OPPOSITE_FACE[orientation.frontFace],
-          R: orientation.rightFace,
-          L: OPPOSITE_FACE[orientation.rightFace],
-          U: orientation.upFace,
-          D: OPPOSITE_FACE[orientation.upFace]
-        };
+        return cubeView.getViewFaceMapping(orientation);
       }
 
       function isMoveSupported(move) {
@@ -2920,70 +2564,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         cube = next;
       }
 
-      function drawCubeNet() {
-        const ctx = cubeNetCtx;
-        const tile = 14;
-        const gap = 1;
-        const radius = 3;
-        const faceSpan = tile * 3 + gap * 2;
-        const netWidth = faceSpan * 4;
-        const netHeight = faceSpan * 3;
-        const offsetX = Math.floor((cubeNetEl.width - netWidth) / 2);
-        const offsetY = Math.floor((cubeNetEl.height - netHeight) / 2);
-
-        ctx.clearRect(0, 0, cubeNetEl.width, cubeNetEl.height);
-        ctx.fillStyle = "rgba(10, 10, 15, 0.18)";
-        ctx.fillRect(0, 0, cubeNetEl.width, cubeNetEl.height);
-
-        const layout = {
-          U: [1, 0],
-          L: [0, 1],
-          F: [1, 1],
-          R: [2, 1],
-          B: [3, 1],
-          D: [1, 2]
-        };
-
-        for (const face of FACE_ORDER) {
-          const [gridX, gridY] = layout[face];
-          const startX = offsetX + gridX * faceSpan;
-          const startY = offsetY + gridY * faceSpan;
-          ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-          ctx.lineWidth = 1;
-          ctx.strokeRect(startX - 2, startY - 2, faceSpan + 3, faceSpan + 3);
-
-          for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 3; col++) {
-              const index = row * 3 + col;
-              ctx.fillStyle = FACE_COLORS[cube[face][index]];
-              const x = startX + col * (tile + gap);
-              const y = startY + row * (tile + gap);
-              ctx.beginPath();
-              ctx.roundRect(x, y, tile, tile, radius);
-              ctx.fill();
-              ctx.strokeStyle = "rgba(17, 17, 17, 0.75)";
-              ctx.lineWidth = 1;
-              ctx.stroke();
-            }
-          }
-        }
-      }
-
       function syncCubeMaterials() {
-        for (const cubie of cubies) {
-          const faces = cubieFaceMap.get(cubie.key);
-          MATERIAL_INDEX_TO_FACE.forEach((faceName, materialIndex) => {
-            const material = cubie.mesh.material[materialIndex];
-            const facelet = faces[faceName];
-            if (!facelet) {
-              material.color.set(HIDDEN_COLOR);
-            } else {
-              const sticker = cube[facelet.face][facelet.index];
-              material.color.set(FACE_COLORS[sticker] || HIDDEN_COLOR);
-            }
-          });
-        }
-        drawCubeNet();
+        cubeView.syncCubeMaterials(cube);
       }
       updateUi();
     })();
