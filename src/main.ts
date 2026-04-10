@@ -194,6 +194,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         maxMs: 800
       };
       const SCRAMBLE_REPLAY_DELAY_MS = 1000;
+      const CROSS_TRAINING_SCRAMBLE_LENGTH = 12;
       const ISOMETRIC_PITCH = 0.8;
       const DEFAULT_ORBIT_PITCH = -ISOMETRIC_PITCH;
       const DEFAULT_ORBIT_RADIUS = 12.4;
@@ -205,7 +206,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         speed: "rubiks-trainer-speed-v1",
         solveMethod: "rubiks-trainer-solve-method-v1",
         solveScope: "rubiks-trainer-solve-scope-v1",
-        practiceScramble: "rubiks-trainer-practice-scramble-v1"
+        practiceScramble: "rubiks-trainer-practice-scramble-v1",
+        practiceCubeState: "rubiks-trainer-practice-cube-state-v1"
       };
       buildFaceletMaps();
 
@@ -260,6 +262,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const cubeNetEl = document.getElementById("cubeNet");
       const cubeNetCtx = cubeNetEl.getContext("2d");
       const hiddenFacesEl = document.getElementById("hiddenFaces");
+      const hiddenFacesCubeEl = document.getElementById("hiddenFacesCube");
       const zoomSliderEl = document.getElementById("zoomSlider");
       const zoomValueEl = document.getElementById("zoomValue");
       const zoomResetBtn = document.getElementById("zoomResetBtn");
@@ -311,6 +314,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const scanCubeBtn = document.getElementById("scanCubeBtn");
       const savePracticeScrambleBtn = document.getElementById("savePracticeScrambleBtn");
       const loadPracticeScrambleBtn = document.getElementById("loadPracticeScrambleBtn");
+      const saveCubeStateBtn = document.getElementById("saveCubeStateBtn");
+      const loadCubeStateBtn = document.getElementById("loadCubeStateBtn");
       const colorEditorNetEl = document.getElementById("colorEditorNet");
       const colorEditorNetCtx = colorEditorNetEl?.getContext("2d");
       const colorEditorExpanderEl = document.getElementById("colorEditorExpander");
@@ -381,7 +386,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       hiddenRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       hiddenRenderer.outputEncoding = THREE.sRGBEncoding;
       hiddenRenderer.setClearColor(0x000000, 0);
-      hiddenFacesEl.appendChild(hiddenRenderer.domElement);
+      hiddenFacesCubeEl.appendChild(hiddenRenderer.domElement);
 
       const ambient = new THREE.AmbientLight(0xffffff, 0.72);
       scene.add(ambient);
@@ -948,6 +953,8 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         resetSessionStatsBtn.addEventListener("click", resetSessionStats);
         filterAllBtn.addEventListener("click", () => setAllCurrentFilters(true));
         filterNoneBtn.addEventListener("click", () => setAllCurrentFilters(false));
+        saveCubeStateBtn?.addEventListener("click", savePracticeCubeState);
+        loadCubeStateBtn?.addEventListener("click", loadSavedPracticeCubeState);
       }
 
       function resize() {
@@ -956,9 +963,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
         renderer.setSize(width, height, false);
-        hiddenCamera.aspect = hiddenFacesEl.clientWidth / hiddenFacesEl.clientHeight;
+        hiddenCamera.aspect = hiddenFacesCubeEl.clientWidth / hiddenFacesCubeEl.clientHeight;
         hiddenCamera.updateProjectionMatrix();
-        hiddenRenderer.setSize(hiddenFacesEl.clientWidth, hiddenFacesEl.clientHeight, false);
+        hiddenRenderer.setSize(hiddenFacesCubeEl.clientWidth, hiddenFacesCubeEl.clientHeight, false);
       }
 
       function clampOrbit() {
@@ -1133,7 +1140,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         resetCameraOrientation();
         state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
         if (generateNew || !parseAlgorithm(state.currentSetupAlgorithm).length) {
-          state.currentSetupAlgorithm = generateScramble(24);
+          state.currentSetupAlgorithm = generateScramble(CROSS_TRAINING_SCRAMBLE_LENGTH);
         }
         state.revealed = false;
         cube = createSolvedState();
@@ -1266,6 +1273,49 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           customScrambleInputEl.value = scramble;
         }
         loadCustomScramble();
+      }
+
+      function isValidCubeState(candidate) {
+        if (!candidate || typeof candidate !== "object") return false;
+        for (const face of FACE_ORDER) {
+          const stickers = candidate[face];
+          if (!Array.isArray(stickers) || stickers.length !== 9) return false;
+          if (!stickers.every((sticker) => FACE_ORDER.includes(sticker))) return false;
+        }
+        return true;
+      }
+
+      function savePracticeCubeState() {
+        try {
+          localStorage.setItem(STORAGE_KEYS.practiceCubeState, JSON.stringify(cube));
+          statusTextEl.textContent = "Saved the current cube state.";
+        } catch (error) {
+          statusTextEl.textContent = "Could not save the cube state in this browser.";
+        }
+        updateUi();
+      }
+
+      function loadSavedPracticeCubeState() {
+        let raw = "";
+        try {
+          raw = String(localStorage.getItem(STORAGE_KEYS.practiceCubeState) || "");
+        } catch (error) {}
+        if (!raw) {
+          statusTextEl.textContent = "No saved cube state found yet.";
+          updateUi();
+          return;
+        }
+        let parsed = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch (error) {}
+        if (!isValidCubeState(parsed)) {
+          statusTextEl.textContent = "The saved cube state is invalid.";
+          updateUi();
+          return;
+        }
+        colorEditorState = cloneState(parsed);
+        loadEditorState();
       }
 
       function resetColorEditor() {

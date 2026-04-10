@@ -412,8 +412,8 @@
       top: 24px;
       right: 24px;
       width: 248px;
-      min-height: 260px;
-      padding: 16px 18px;
+      height: 320px;
+      padding: 16px 18px 18px;
       border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 18px;
       background:
@@ -430,14 +430,27 @@
       text-align: center;
     }
 
+    .hidden-faces-cube {
+      flex: 1 1 auto;
+      min-height: 0;
+      margin-top: 16px;
+      padding: 6px;
+      border-radius: 14px;
+      background: rgba(8, 10, 14, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.045);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     #hiddenFaces canvas {
       display: block;
       width: 100% !important;
-      height: auto !important;
-      aspect-ratio: 220 / 165;
-      margin-top: 16px;
-      flex: 1 1 auto;
-      opacity: 0.72;
+      height: 100% !important;
+      aspect-ratio: 1 / 1;
+      margin-top: 0;
+      flex: 0 0 auto;
+      opacity: 0.9;
     }
 
     .timer-shell {
@@ -1255,6 +1268,10 @@
             <button id="savePracticeScrambleBtn" class="tiny-btn" type="button">Save Scramble</button>
             <button id="loadPracticeScrambleBtn" class="tiny-btn" type="button">Load Saved</button>
           </div>
+          <div class="tiny-actions">
+            <button id="saveCubeStateBtn" class="tiny-btn" type="button">Save Cube</button>
+            <button id="loadCubeStateBtn" class="tiny-btn" type="button">Load Saved Cube</button>
+          </div>
           <details id="colorEditorExpander" class="color-editor-expander">
             <summary id="colorEditorToggle" class="tiny-btn">Open Color Editor</summary>
             <div class="color-editor-sheet">
@@ -1350,6 +1367,7 @@
           <div class="label">Timer</div>
           <div id="timer">0.00</div>
         </div>
+        <div class="hidden-faces-cube" id="hiddenFacesCube"></div>
       </div>
       <section class="dock-panel" id="beginnerTeacherPanel">
         <div class="label">Beginner Teacher</div>
@@ -1583,4 +1601,3 @@
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
-
