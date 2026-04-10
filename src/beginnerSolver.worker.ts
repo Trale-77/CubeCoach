@@ -3,35 +3,22 @@ import f2lData from "../f2l_complete.json";
 import f2lExtendedData from "../f2l_extended.json";
 import f2lVolume3Data from "../f2l_volume3.json";
 import f2lVolume4Data from "../f2l_volume4.json";
+import {
+  FACE_ORDER,
+  SEARCH_MOVES,
+  MOVE_AXIS,
+  FACE_SEARCH_ORDER,
+  FACE_NORMALS,
+  cubieFaceMap,
+  createSolvedState,
+  cloneState,
+  parseAlgorithm,
+  applyMovesToState,
+  applyMoveToState,
+  serializeState,
+  isSolved
+} from "./lib/cube-core";
 
-const FACE_ORDER = ["U", "D", "F", "B", "R", "L"];
-const faceletMap = new Map();
-const reverseFaceletMap = new Map();
-const cubieFaceMap = new Map();
-const SEARCH_MOVES = [
-  "U", "U'", "U2",
-  "R", "R'", "R2",
-  "F", "F'", "F2",
-  "D", "D'", "D2",
-  "L", "L'", "L2",
-  "B", "B'", "B2"
-];
-const MOVE_AXIS = {
-  U: "y",
-  D: "y",
-  R: "x",
-  L: "x",
-  F: "z",
-  B: "z"
-};
-const FACE_SEARCH_ORDER = {
-  U: 0,
-  D: 1,
-  R: 2,
-  L: 3,
-  F: 4,
-  B: 5
-};
 const BEGINNER_SEARCH_LIMITS = {
   maxNodes: 500000000,
   maxMs: 900000
@@ -67,17 +54,6 @@ const CFOP_F2L_KNOWN_RECOVERY_SIGNATURES = new Set([
   "1,1,-1:x=F:y=R:z=D|-1,0,1:x=R:z=F",
   "1,-1,1:x=D:y=F:z=R|1,0,1:x=R:z=F"
 ]);
-const FACE_NORMALS = {
-  U: [0, 1, 0],
-  D: [0, -1, 0],
-  F: [0, 0, 1],
-  B: [0, 0, -1],
-  R: [1, 0, 0],
-  L: [-1, 0, 0]
-};
-
-buildFaceletMaps();
-
 self.addEventListener("message", (event) => {
   const reportProgress = (message) => {
     self.postMessage({ id: event.data.id, type: "progress", message });
@@ -94,80 +70,6 @@ self.addEventListener("message", (event) => {
   }
 });
 
-function buildFaceletMaps() {
-  for (const face of FACE_ORDER) {
-    for (let index = 0; index < 9; index++) {
-      const entry = faceletToEntry(face, index);
-      faceletMap.set(`${face}:${index}`, entry);
-      reverseFaceletMap.set(reverseKey(entry.position, entry.normal), { face, index });
-    }
-  }
-
-  for (let x = -1; x <= 1; x++) {
-    for (let y = -1; y <= 1; y++) {
-      for (let z = -1; z <= 1; z++) {
-        const faces = {};
-        if (x === 1) faces.R = reverseFaceletMap.get(reverseKey([x, y, z], [1, 0, 0]));
-        if (x === -1) faces.L = reverseFaceletMap.get(reverseKey([x, y, z], [-1, 0, 0]));
-        if (y === 1) faces.U = reverseFaceletMap.get(reverseKey([x, y, z], [0, 1, 0]));
-        if (y === -1) faces.D = reverseFaceletMap.get(reverseKey([x, y, z], [0, -1, 0]));
-        if (z === 1) faces.F = reverseFaceletMap.get(reverseKey([x, y, z], [0, 0, 1]));
-        if (z === -1) faces.B = reverseFaceletMap.get(reverseKey([x, y, z], [0, 0, -1]));
-        cubieFaceMap.set(`${x},${y},${z}`, faces);
-      }
-    }
-  }
-}
-
-function faceletToEntry(face, index) {
-  const row = Math.floor(index / 3);
-  const col = index % 3;
-  const u = col - 1;
-  const v = 1 - row;
-  switch (face) {
-    case "F": return { position: [u, v, 1], normal: [0, 0, 1] };
-    case "B": return { position: [-u, v, -1], normal: [0, 0, -1] };
-    case "U": return { position: [u, 1, -v], normal: [0, 1, 0] };
-    case "D": return { position: [u, -1, v], normal: [0, -1, 0] };
-    case "R": return { position: [1, v, -u], normal: [1, 0, 0] };
-    case "L": return { position: [-1, v, u], normal: [-1, 0, 0] };
-    default: throw new Error(`Unknown face ${face}`);
-  }
-}
-
-function reverseKey(position, normal) {
-  return `${position.join(",")}|${normal.join(",")}`;
-}
-
-function createSolvedState() {
-  return {
-    U: Array(9).fill("U"),
-    D: Array(9).fill("D"),
-    F: Array(9).fill("F"),
-    B: Array(9).fill("B"),
-    R: Array(9).fill("R"),
-    L: Array(9).fill("L")
-  };
-}
-
-function cloneState(source) {
-  const next = {};
-  for (const face of FACE_ORDER) {
-    next[face] = source[face].slice();
-  }
-  return next;
-}
-
-function parseAlgorithm(algorithm) {
-  return algorithm
-    .trim()
-    .split(/\s+/)
-    .map((token) => token.replace(/[()]/g, "").replace(/1/g, "").replace(/3/g, "'"))
-    .map((token) => token.replace(/2'$/g, "2"))
-    .map((token) => token.replace(/^r/g, "R").replace(/^l/g, "L").replace(/^f/g, "F").replace(/^b/g, "B").replace(/^u/g, "U").replace(/^d/g, "D"))
-    .filter((token) => /^[A-Za-z]/.test(token))
-    .filter(Boolean);
-}
 
 function buildCfopF2lCaseLibrary(groupNames) {
   const cases = [];
@@ -368,60 +270,6 @@ function axisIndex(axis) {
   return axis === "x" ? 0 : axis === "y" ? 1 : 2;
 }
 
-function rotateVector(vector, axis, rotation) {
-  let [x, y, z] = vector;
-  const steps = ((rotation % 4) + 4) % 4;
-  for (let i = 0; i < steps; i++) {
-    if (axis === "x") {
-      [x, y, z] = [x, -z, y];
-    } else if (axis === "y") {
-      [x, y, z] = [z, y, -x];
-    } else {
-      [x, y, z] = [-y, x, z];
-    }
-  }
-  return [x, y, z];
-}
-
-function applyMovesToState(currentState, moves) {
-  let next = cloneState(currentState);
-  for (const move of moves) {
-    next = applyMoveToState(next, move);
-  }
-  return next;
-}
-
-function applyMoveToState(currentState, move) {
-  let next = cloneState(currentState);
-  const job = createMoveJob(move, move);
-  for (let step = 0; step < job.quarterTurns; step++) {
-    for (const layer of job.layers) {
-      next = rotateLayerOnState(next, layer.axis, layer.layer, layer.rotation);
-    }
-  }
-  return next;
-}
-
-function rotateLayerOnState(currentState, axis, layer, rotation) {
-  const next = cloneState(currentState);
-  for (const face of FACE_ORDER) {
-    for (let index = 0; index < 9; index++) {
-      const key = `${face}:${index}`;
-      const entry = faceletMap.get(key);
-      if (entry.position[axisIndex(axis)] !== layer) continue;
-      const rotatedPosition = rotateVector(entry.position, axis, rotation);
-      const rotatedNormal = rotateVector(entry.normal, axis, rotation);
-      const target = reverseFaceletMap.get(reverseKey(rotatedPosition, rotatedNormal));
-      next[target.face][target.index] = currentState[face][index];
-    }
-  }
-  return next;
-}
-
-function isSolved(current) {
-  return FACE_ORDER.every((face) => current[face].every((value) => value === current[face][0]));
-}
-
 function getStickerMapAtState(currentState, coords) {
   const faces = cubieFaceMap.get(coords.join(","));
   const stickers = {};
@@ -571,10 +419,6 @@ function buildAufAlgorithmOptions(algorithms) {
     }
   }
   return options;
-}
-
-function serializeState(currentState) {
-  return FACE_ORDER.map((face) => currentState[face].join("")).join("|");
 }
 
 function dot(a, b) {

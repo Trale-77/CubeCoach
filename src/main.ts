@@ -1,5 +1,50 @@
 // @ts-nocheck
 import * as THREE from "three";
+import { OLL_CASES, PLL_CASES } from "./data/cases";
+import {
+  FACE_ORDER,
+  FACE_COLORS,
+  OPPOSITE_FACE,
+  FACE_COLOR_NAMES,
+  faceletMap,
+  reverseFaceletMap,
+  cubieFaceMap,
+  reverseKey,
+  createSolvedState,
+  cloneState,
+  parseAlgorithm,
+  generateScramble,
+  invertAlgorithm,
+  invertMove,
+  createMoveJob,
+  getQuarterTurns,
+  getLayersForMove,
+  axisIndex,
+  rotateVector,
+  applyMovesToState,
+  applyMoveToState,
+  rotateLayerOnState,
+  serializeState,
+  isSolved,
+  SEARCH_MOVES,
+  MOVE_AXIS,
+  FACE_SEARCH_ORDER
+} from "./lib/cube-core";
+import {
+  STORAGE_KEYS,
+  loadSelectedCases,
+  saveSelectedCases,
+  loadCaseStats,
+  saveCaseStats,
+  loadSolveMethod,
+  saveSolveMethod,
+  loadSolveScope,
+  normalizeSolveScope,
+  saveSolveScope
+} from "./lib/storage";
+import { createCubeScannerController } from "./features/scanner";
+import { createColorEditorController } from "./features/colorEditor";
+import { createPracticeController } from "./features/practice";
 
 const beginnerSolverWorker = new Worker(new URL("./beginnerSolver.worker.ts", import.meta.url), { type: "module" });
 let beginnerSolverRequestId = 0;
@@ -22,23 +67,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 });
 
 (() => {
-      const FACE_ORDER = ["U", "D", "F", "B", "R", "L"];
-      const OPPOSITE_FACE = {
-        U: "D",
-        D: "U",
-        F: "B",
-        B: "F",
-        R: "L",
-        L: "R"
-      };
-      const FACE_COLORS = {
-        U: "#FFD500",
-        D: "#FFFFFF",
-        F: "#B90000",
-        B: "#FF5900",
-        R: "#009B48",
-        L: "#0045AD"
-      };
       const HIDDEN_COLOR = "#111111";
       const MATERIAL_INDEX_TO_FACE = ["R", "L", "U", "D", "F", "B"];
       const MOVE_BINDINGS = {
@@ -62,93 +90,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         g: "L2"
       };
 
-      const OLL_CASES = [
-        { name: "OLL 1", algorithm: "R U2 R' R' F R F' U2 R' F R F'" },
-        { name: "OLL 2", algorithm: "r U r' U2 r U2 R' U2 R U' r'" },
-        { name: "OLL 3", algorithm: "r' R2 U R' U r U2 r' U M'" },
-        { name: "OLL 4", algorithm: "M U' r U2 r' U' R U' R' M'" },
-        { name: "OLL 5", algorithm: "l' U2 L U L' U l" },
-        { name: "OLL 6", algorithm: "r U2 R' U' R U' r'" },
-        { name: "OLL 7", algorithm: "r U R' U R U2 r'" },
-        { name: "OLL 8", algorithm: "l' U' L U' L' U2 l" },
-        { name: "OLL 9", algorithm: "R U R' U' R' F R2 U R' U' F'" },
-        { name: "OLL 10", algorithm: "R U R' U R' F R F' R U2 R'" },
-        { name: "OLL 11", algorithm: "r U R' U R' F R F' R U2 r'" },
-        { name: "OLL 12", algorithm: "M' R' U' R U' R' U2 R U' R r'" },
-        { name: "OLL 13", algorithm: "F U R U' R2 F' R U R U' R'" },
-        { name: "OLL 14", algorithm: "R' F R U R' F' R F U' F'" },
-        { name: "OLL 15", algorithm: "l' U' l L' U' L U l' U l" },
-        { name: "OLL 16", algorithm: "r U r' R U R' U' r U' r'" },
-        { name: "OLL 17", algorithm: "F R' F' R2 r' U R U' R' U' M'" },
-        { name: "OLL 18", algorithm: "r U R' U R U2 r' r' U' R U' R' U2 r" },
-        { name: "OLL 19", algorithm: "r' R U R U R' U' M' R' F R F'" },
-        { name: "OLL 20", algorithm: "r U R' U' M2 U R U' R' U' M'" },
-        { name: "OLL 21", algorithm: "R U2 R' U' R U R' U' R U' R'" },
-        { name: "OLL 22", algorithm: "R U2 (R2 U' R2 U' R2) U2 R" },
-        { name: "OLL 23", algorithm: "R2 D' R U2 R' D R U2 R" },
-        { name: "OLL 24", algorithm: "r U R' U' r' F R F'" },
-        { name: "OLL 25", algorithm: "F' r U R' U' r' F R" },
-        { name: "OLL 26", algorithm: "(R U2 R') U' R U' R'" },
-        { name: "OLL 27", algorithm: "R U R' U R U2 R'" },
-        { name: "OLL 28", algorithm: "r U R' U' r' R U R U' R'" },
-        { name: "OLL 29", algorithm: "R U R' U' R U' R' F' U' F R U R'" },
-        { name: "OLL 30", algorithm: "F R' F R2 U' R' U' R U R' F2" },
-        { name: "OLL 31", algorithm: "R' U' F U R U' R' F' R" },
-        { name: "OLL 32", algorithm: "L U F' U' L' U L F L'" },
-        { name: "OLL 33", algorithm: "R U R' U' R' F R F'" },
-        { name: "OLL 34", algorithm: "R U R2 U' R' F R U R U' F'" },
-        { name: "OLL 35", algorithm: "R U2 R' R' F R F' R U2 R'" },
-        { name: "OLL 36", algorithm: "L' U' L U' L' U L U L F' L' F" },
-        { name: "OLL 37", algorithm: "F R' F' R U R U' R'" },
-        { name: "OLL 38", algorithm: "R U R' U R U' R' U' R' F R F'" },
-        { name: "OLL 39", algorithm: "L F' L' U' L U F U' L'" },
-        { name: "OLL 40", algorithm: "R' F R U R' U' F' U R" },
-        { name: "OLL 41", algorithm: "R U R' U R U2 R' F R U R' U' F'" },
-        { name: "OLL 42", algorithm: "R' U' R U' R' U2 R F R U R' U' F'" },
-        { name: "OLL 43", algorithm: "F' U' L' U L F" },
-        { name: "OLL 44", algorithm: "F U R U' R' F'" },
-        { name: "OLL 45", algorithm: "F R U R' U' F'" },
-        { name: "OLL 46", algorithm: "R' U' R' F R F' U R" },
-        { name: "OLL 47", algorithm: "R' U' R' F R F' R' F R F' U R" },
-        { name: "OLL 48", algorithm: "F R U R' U' R U R' U' F'" },
-        { name: "OLL 49", algorithm: "r U' r2 U r2 U r2 U' r" },
-        { name: "OLL 50", algorithm: "r' U r2 U' r2 U' r2 U r'" },
-        { name: "OLL 51", algorithm: "F U R U' R' U R U' R' F'" },
-        { name: "OLL 52", algorithm: "R U R' U R U' B U' B' R'" },
-        { name: "OLL 53", algorithm: "l' U2 L U L' U' L U L' U l" },
-        { name: "OLL 54", algorithm: "(r U2 R' U') R U R' U' R U' r'" },
-        { name: "OLL 55", algorithm: "R' F R U R U' R2 F' R2 U' R' U R U R'" },
-        { name: "OLL 56", algorithm: "(r' U' r) U' R' U R U' R' U R r' U r" },
-        { name: "OLL 57", algorithm: "R U R' U' M' U R U' r'" }
-      ];
-
-      const PLL_CASES = [
-        { name: "H Perm", algorithm: "M2 U M2 U2 M2 U M2" },
-        { name: "Z Perm", algorithm: "M' U M2 U M2 U M' U2 M2" },
-        { name: "Ua Perm", algorithm: "M2 U M U2 M' U M2" },
-        { name: "Ub Perm", algorithm: "M2 U' M U2 M' U' M2" },
-        { name: "Aa Perm", algorithm: "x L2 D2 L' U' L D2 L' U L'" },
-        { name: "Ab Perm", algorithm: "x' L2 D2 L U L' D2 L U' L" },
-        { name: "E Perm", algorithm: "x' L' U L D' L' U' L D L' U' L D' L' U L D" },
-        { name: "F Perm", algorithm: "R' U' F' R U R' U' R' F R2 U' R' U' R U R' U R" },
-        { name: "Ja Perm", algorithm: "x R2 F R F' R U2 r' U r U2" },
-        { name: "Jb Perm", algorithm: "R U R' F' R U R' U' R' F R2 U' R'", setupAuf: "U" },
-        { name: "Ra Perm", algorithm: "R U' R' U' R U R D R' U' R D' R' U2 R'" },
-        { name: "Rb Perm", algorithm: "R2 F R U R U' R' F' R U2 R' U2 R" },
-        { name: "T Perm", algorithm: "R U R' U' R' F R2 U' R' U' (R U R') F'" },
-        { name: "Y Perm", algorithm: "F R U' R' U' R U R' F' R U R' U' R' F R F'" },
-        { name: "V Perm", algorithm: "R' U R' U' y R' F' R2 U' R' U R' F R F" },
-        { name: "Na Perm", algorithm: "R U R' U R U R' F' R U R' U' R' F R2 U' R' U2 R U' R'" },
-        { name: "Nb Perm", algorithm: "R' (U R U' R') F' U' F R U R' F R' F' R U' R" },
-        { name: "Ga Perm", algorithm: "R2 U R' U R' U' R U' R2 (U' D) R' U R D'" },
-        { name: "Gb Perm", algorithm: "R' U' R (U D') R2 U R' U R U' R U' R2 D" },
-        { name: "Gc Perm", algorithm: "R2 U' R U' R U R' U R2 (U D') R U' R' D" },
-        { name: "Gd Perm", algorithm: "R U R' (U' D) R2 U' R U' R' U R' U R2 D'" }
-      ];
-
-      const faceletMap = new Map();
-      const reverseFaceletMap = new Map();
-      const cubieFaceMap = new Map();
       const FACE_NORMALS = {
         U: new THREE.Vector3(0, 1, 0),
         D: new THREE.Vector3(0, -1, 0),
@@ -156,38 +97,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         B: new THREE.Vector3(0, 0, -1),
         R: new THREE.Vector3(1, 0, 0),
         L: new THREE.Vector3(-1, 0, 0)
-      };
-      const SEARCH_MOVES = [
-        "U", "U'", "U2",
-        "R", "R'", "R2",
-        "F", "F'", "F2",
-        "D", "D'", "D2",
-        "L", "L'", "L2",
-        "B", "B'", "B2"
-      ];
-      const MOVE_AXIS = {
-        U: "y",
-        D: "y",
-        R: "x",
-        L: "x",
-        F: "z",
-        B: "z"
-      };
-      const FACE_SEARCH_ORDER = {
-        U: 0,
-        D: 1,
-        R: 2,
-        L: 3,
-        F: 4,
-        B: 5
-      };
-      const FACE_COLOR_NAMES = {
-        U: "Yellow",
-        D: "White",
-        F: "Red",
-        B: "Orange",
-        R: "Green",
-        L: "Blue"
       };
       const BEGINNER_SEARCH_LIMITS = {
         maxNodes: 120000,
@@ -199,16 +108,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const DEFAULT_ORBIT_RADIUS = 12.4;
       const DEFAULT_ORBIT_YAW = 3 * Math.PI / 4;
       const ZOOM_RADIUS_DELTA = 3.2;
-      const STORAGE_KEYS = {
-        filters: "rubiks-trainer-filters-v1",
-        stats: "rubiks-trainer-stats-v1",
-        speed: "rubiks-trainer-speed-v1",
-        solveMethod: "rubiks-trainer-solve-method-v1",
-        solveScope: "rubiks-trainer-solve-scope-v1",
-        practiceScramble: "rubiks-trainer-practice-scramble-v1"
-      };
-      buildFaceletMaps();
-
       const state = {
         mode: "OLL",
         currentCase: null,
@@ -216,8 +115,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         currentCrossSolution: "",
         currentCrossOptimalMoves: 0,
         cfopStageFloor: 0,
-        editorSelectedFace: "U",
-        editorCurrentFace: "U",
         revealed: false,
         moveCount: 0,
         timerStart: 0,
@@ -226,7 +123,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         solved: false,
         setupHistory: [],
         userHistory: [],
-        selectedCases: loadSelectedCases(),
+        selectedCases: loadSelectedCases(OLL_CASES, PLL_CASES),
         caseStats: loadCaseStats(),
         sessionStats: createEmptySessionStats(),
         solveMethod: loadSolveMethod(),
@@ -244,7 +141,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       };
 
       let cube = createSolvedState();
-      let colorEditorState = createSolvedState();
       const cubies = [];
 
       const viewport = document.getElementById("viewport");
@@ -311,47 +207,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       const scanCubeBtn = document.getElementById("scanCubeBtn");
       const savePracticeScrambleBtn = document.getElementById("savePracticeScrambleBtn");
       const loadPracticeScrambleBtn = document.getElementById("loadPracticeScrambleBtn");
-      const colorEditorNetEl = document.getElementById("colorEditorNet");
-      const colorEditorNetCtx = colorEditorNetEl?.getContext("2d");
-      const colorEditorExpanderEl = document.getElementById("colorEditorExpander");
-      const colorEditorToggleEl = document.getElementById("colorEditorToggle");
-      const colorEditorBackdropEl = document.getElementById("colorEditorBackdrop");
-      const colorEditorModalEl = document.getElementById("colorEditorModal");
-      const colorEditorSheetEl = colorEditorExpanderEl?.querySelector(".color-editor-sheet");
-      const colorEditorFaceNameEl = document.getElementById("colorEditorFaceName");
-      const colorEditorOrientationEl = document.getElementById("colorEditorOrientation");
-      const colorEditorPrevFaceBtn = document.getElementById("colorEditorPrevFace");
-      const colorEditorNextFaceBtn = document.getElementById("colorEditorNextFace");
-      const cubeScannerBackdropEl = document.getElementById("cubeScannerBackdrop");
-      const cubeScannerModalEl = document.getElementById("cubeScannerModal");
-      const cubeScannerPromptEl = document.getElementById("cubeScannerPrompt");
-      const cubeScannerProgressEl = document.getElementById("cubeScannerProgress");
-      const cubeScannerStatusEl = document.getElementById("cubeScannerStatus");
-      const cubeScannerOrientationEl = document.getElementById("cubeScannerOrientation");
-      const cubeScannerQualityEl = document.getElementById("cubeScannerQuality");
-      const cubeScannerVideoEl = document.getElementById("cubeScannerVideo");
-      const cubeScannerOverlayEl = document.getElementById("cubeScannerOverlay");
-      const cubeScannerOverlayCtx = cubeScannerOverlayEl?.getContext("2d");
-      const cubeScannerPreviewNetEl = document.getElementById("cubeScannerPreviewNet");
-      const cubeScannerPreviewNetCtx = cubeScannerPreviewNetEl?.getContext("2d");
-      const scannerReviewEl = document.getElementById("scannerReview");
-      const scannerFaceEditorNetEl = document.getElementById("scannerFaceEditorNet");
-      const scannerFaceEditorNetCtx = scannerFaceEditorNetEl?.getContext("2d");
-      const scannerUseFaceBtn = document.getElementById("scannerUseFaceBtn");
-      const scannerRescanBtn = document.getElementById("scannerRescanBtn");
-      const startScannerBtn = document.getElementById("startScannerBtn");
-      const captureScannerBtn = document.getElementById("captureScannerBtn");
-      const closeScannerBtn = document.getElementById("closeScannerBtn");
-      const scannerColorButtons = ["U", "D", "F", "B", "R", "L"].map((face) => ({
-        face,
-        button: document.getElementById(`scannerColor${face}`)
-      }));
-      const resetEditorBtn = document.getElementById("resetEditorBtn");
-      const loadEditorStateBtn = document.getElementById("loadEditorStateBtn");
-      const editorColorButtons = ["U", "D", "F", "B", "R", "L"].map((face) => ({
-        face,
-        button: document.getElementById(`editorColor${face}`)
-      }));
       const stepMovesEl = document.getElementById("stepMoves");
       const caseStatsEl = document.getElementById("caseStats");
       const resetCaseStatsBtn = document.getElementById("resetCaseStatsBtn");
@@ -421,33 +276,40 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       };
       let scrambleReplayTimeout = 0;
       let crossTrainingRequestId = 0;
-      const COLOR_EDITOR_FACE_ORDER = ["U", "F", "R", "D", "B", "L"];
-      const cubeScanner = {
-          active: false,
-          stream: null,
-          raf: 0,
-          faceOrder: ["U", "F", "R", "D", "B", "L"],
-          index: 0,
-          captured: createSolvedState(),
-          lastDetailed: null,
-          history: [],
-          pendingFace: null,
-          pendingDetected: null,
-          selectedFace: "U",
-          stableSignature: "",
-          stableFrames: 0,
-          quad: null,
-          dragCornerIndex: -1
-        };
 
-      const SCANNER_ADJACENT_FACE_MAP = {
-        U: new Set(["F", "R", "B", "L"]),
-        D: new Set(["F", "R", "B", "L"]),
-        F: new Set(["U", "D", "R", "L"]),
-        B: new Set(["U", "D", "R", "L"]),
-        R: new Set(["U", "D", "F", "B"]),
-        L: new Set(["U", "D", "F", "B"])
-      };
+      const colorEditorController = createColorEditorController({
+        onChange: () => updateUi(),
+        onApply: (editedState) => {
+          clearMoveAnimations();
+          resetCameraOrientation();
+          state.currentSetupAlgorithm = "";
+          state.setupHistory = [];
+          state.userHistory = [];
+          cube = cloneState(editedState);
+          resetStats();
+          syncCubeMaterials();
+
+          if (state.mode === "CROSS") {
+            state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
+            state.revealed = false;
+            statusTextEl.textContent = "Custom cube state loaded for cross training.";
+            updateUi();
+            void computeCrossTrainingSolution();
+            return;
+          }
+
+          if (state.mode === "FREE") {
+            state.currentCase = { name: "FREE CUSTOM STATE", algorithm: "Manual color entry" };
+            state.revealed = true;
+            statusTextEl.textContent = "Custom cube state loaded.";
+            updateUi();
+            return;
+          }
+
+          statusTextEl.textContent = "Color entry is available in FREE and CROSS modes.";
+          updateUi();
+        }
+      });
 
       try {
         const storedSpeed = Number(localStorage.getItem(STORAGE_KEYS.speed));
@@ -456,65 +318,43 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         }
       } catch (error) {}
 
+      const cubeScannerController = createCubeScannerController({
+        onLoadCapturedState: (capturedState) => {
+          colorEditorController.loadCapturedState(capturedState);
+          const editedState = colorEditorController.getEditedState();
+          cube = cloneState(editedState);
+          syncCubeMaterials();
+          updateUi();
+        }
+      });
+
+      const practiceController = createPracticeController({
+        state,
+        modeButtons,
+        customScrambleInputEl,
+        statusTextEl,
+        getCasesForMode,
+        clearMoveAnimations,
+        resetCameraOrientation,
+        renderFilterList,
+        resetStats,
+        syncCubeMaterials,
+        updateUi,
+        applyAlgorithm,
+        computeCrossTrainingSolution,
+        setCubeState: (nextCube) => {
+          cube = nextCube;
+        },
+        setCrossSolution: setCurrentCfopCrossSolution
+      });
+
       initCubies();
       attachEvents();
       updateZoomFromSlider();
       updateAnimationSpeed();
       resize();
-      setMode("FREE");
+      practiceController.setMode("FREE");
       requestAnimationFrame(renderLoop);
-
-      function buildFaceletMaps() {
-        for (const face of FACE_ORDER) {
-          for (let index = 0; index < 9; index++) {
-            const entry = faceletToEntry(face, index);
-            faceletMap.set(`${face}:${index}`, entry);
-            reverseFaceletMap.set(reverseKey(entry.position, entry.normal), { face, index });
-          }
-        }
-
-        for (let x = -1; x <= 1; x++) {
-          for (let y = -1; y <= 1; y++) {
-            for (let z = -1; z <= 1; z++) {
-              const faces = {};
-              if (x === 1) faces.R = reverseFaceletMap.get(reverseKey([x, y, z], [1, 0, 0]));
-              if (x === -1) faces.L = reverseFaceletMap.get(reverseKey([x, y, z], [-1, 0, 0]));
-              if (y === 1) faces.U = reverseFaceletMap.get(reverseKey([x, y, z], [0, 1, 0]));
-              if (y === -1) faces.D = reverseFaceletMap.get(reverseKey([x, y, z], [0, -1, 0]));
-              if (z === 1) faces.F = reverseFaceletMap.get(reverseKey([x, y, z], [0, 0, 1]));
-              if (z === -1) faces.B = reverseFaceletMap.get(reverseKey([x, y, z], [0, 0, -1]));
-              cubieFaceMap.set(`${x},${y},${z}`, faces);
-            }
-          }
-        }
-      }
-
-      function faceletToEntry(face, index) {
-        const row = Math.floor(index / 3);
-        const col = index % 3;
-        const u = col - 1;
-        const v = 1 - row;
-        switch (face) {
-          case "F":
-            return { position: [u, v, 1], normal: [0, 0, 1] };
-          case "B":
-            return { position: [-u, v, -1], normal: [0, 0, -1] };
-          case "U":
-            return { position: [u, 1, -v], normal: [0, 1, 0] };
-          case "D":
-            return { position: [u, -1, v], normal: [0, -1, 0] };
-          case "R":
-            return { position: [1, v, -u], normal: [1, 0, 0] };
-          case "L":
-            return { position: [-1, v, u], normal: [-1, 0, 0] };
-          default:
-            throw new Error(`Unknown face ${face}`);
-        }
-      }
-
-      function reverseKey(position, normal) {
-        return `${position.join(",")}|${normal.join(",")}`;
-      }
 
       function normalizeAngle(angle) {
         return Math.atan2(Math.sin(angle), Math.cos(angle));
@@ -562,25 +402,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return bestFace;
       }
 
-      function createSolvedState() {
-        return {
-          U: Array(9).fill("U"),
-          D: Array(9).fill("D"),
-          F: Array(9).fill("F"),
-          B: Array(9).fill("B"),
-          R: Array(9).fill("R"),
-          L: Array(9).fill("L")
-        };
-      }
-
-      function cloneState(source) {
-        const next = {};
-        for (const face of FACE_ORDER) {
-          next[face] = source[face].slice();
-        }
-        return next;
-      }
-
       function getCasesForMode(mode) {
         return mode === "PLL" ? PLL_CASES : mode === "OLL" ? OLL_CASES : [];
       }
@@ -591,64 +412,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
       function isCurrentGoalSolved() {
         return state.mode === "CROSS" ? isWhiteCrossSolvedState(cube) : isSolved(cube);
-      }
-
-      function loadSelectedCases() {
-        const fallback = {
-          OLL: OLL_CASES.map((item) => item.name),
-          PLL: PLL_CASES.map((item) => item.name)
-        };
-        try {
-          const raw = localStorage.getItem(STORAGE_KEYS.filters);
-          if (!raw) return fallback;
-          const parsed = JSON.parse(raw);
-          return {
-            OLL: Array.isArray(parsed.OLL) ? parsed.OLL : fallback.OLL,
-            PLL: Array.isArray(parsed.PLL) ? parsed.PLL : fallback.PLL
-          };
-        } catch (error) {
-          return fallback;
-        }
-      }
-
-      function saveSelectedCases() {
-        try {
-          localStorage.setItem(STORAGE_KEYS.filters, JSON.stringify(state.selectedCases));
-        } catch (error) {}
-      }
-
-      function loadCaseStats() {
-        try {
-          return JSON.parse(localStorage.getItem(STORAGE_KEYS.stats) || "{}");
-        } catch (error) {
-          return {};
-        }
-      }
-
-      function loadSolveMethod() {
-        try {
-          const saved = localStorage.getItem(STORAGE_KEYS.solveMethod);
-          return saved === "BEGINNER" ? "BEGINNER" : "CFOP";
-        } catch (error) {
-          return "CFOP";
-        }
-      }
-
-      function loadSolveScope() {
-        try {
-          const saved = localStorage.getItem(STORAGE_KEYS.solveScope);
-          return [
-            "WHITE_CROSS",
-            "WHITE_CORNERS",
-            "MIDDLE_LAYER",
-            "YELLOW_CROSS",
-            "LAST_LAYER_EDGES",
-            "LAST_LAYER_CORNERS_ORIENTATION",
-            "LAST_LAYER_CORNERS_PERMUTATION"
-          ].includes(saved) ? saved : "FULL";
-        } catch (error) {
-          return "FULL";
-        }
       }
 
       function createEmptySessionStats() {
@@ -665,17 +428,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         };
       }
 
-      function saveCaseStats() {
-        try {
-          localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(state.caseStats));
-        } catch (error) {}
-      }
-
       function updateSolveMethod() {
         state.solveMethod = solveMethodEl.value === "BEGINNER" ? "BEGINNER" : "CFOP";
-        try {
-          localStorage.setItem(STORAGE_KEYS.solveMethod, state.solveMethod);
-        } catch (error) {}
+        saveSolveMethod(state.solveMethod);
         if (state.solveMethod === "BEGINNER") {
           state.beginnerLessonKey = inferBeginnerLessonKey();
         }
@@ -683,27 +438,15 @@ beginnerSolverWorker.addEventListener("message", (event) => {
       }
 
       function updateSolveScope() {
-        state.solveScope = [
-          "WHITE_CROSS",
-          "WHITE_CORNERS",
-          "MIDDLE_LAYER",
-          "YELLOW_CROSS",
-          "LAST_LAYER_EDGES",
-          "LAST_LAYER_CORNERS_ORIENTATION",
-          "LAST_LAYER_CORNERS_PERMUTATION"
-        ].includes(solveScopeEl.value) ? solveScopeEl.value : "FULL";
-        try {
-          localStorage.setItem(STORAGE_KEYS.solveScope, state.solveScope);
-        } catch (error) {}
+        state.solveScope = normalizeSolveScope(solveScopeEl.value);
+        saveSolveScope(state.solveScope);
         state.beginnerLessonKey = inferBeginnerLessonKey();
         updateUi();
       }
 
       function persistSolveScope() {
         solveScopeEl.value = state.solveScope;
-        try {
-          localStorage.setItem(STORAGE_KEYS.solveScope, state.solveScope);
-        } catch (error) {}
+        saveSolveScope(state.solveScope);
       }
 
       function getCaseStatsKey() {
@@ -772,50 +515,29 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         });
 
         modeButtons.forEach((button) => {
-          button.addEventListener("click", () => setMode(button.dataset.mode));
+          button.addEventListener("click", () => practiceController.setMode(button.dataset.mode));
         });
 
         newCaseBtn.addEventListener("click", () => {
           if (state.mode === "FREE") {
-            resetFreeMode(true, false);
+            practiceController.resetFreeMode(true, false);
           } else if (state.mode === "CROSS") {
-            resetCrossTrainingMode(true);
+            practiceController.resetCrossTrainingMode(true);
           } else {
             setCfopStageFloor(0);
-            chooseRandomCase();
+            practiceController.chooseRandomCase();
           }
         });
 
-        resetBtn.addEventListener("click", () => resetCurrentCase());
-        revealBtn.addEventListener("click", revealAlgorithm);
-        crossRevealBtn?.addEventListener("click", revealAlgorithm);
+        resetBtn.addEventListener("click", () => practiceController.resetCurrentCase());
+        revealBtn.addEventListener("click", practiceController.revealAlgorithm);
+        crossRevealBtn?.addEventListener("click", practiceController.revealAlgorithm);
         solveBtn?.addEventListener("click", solveCubeAnimated);
         undoBtn.addEventListener("click", undoLastMove);
         showScrambleBtn.addEventListener("click", replayCurrentScramble);
-        loadScrambleBtn?.addEventListener("click", loadCustomScramble);
-        savePracticeScrambleBtn?.addEventListener("click", savePracticeScramble);
-        loadPracticeScrambleBtn?.addEventListener("click", loadSavedPracticeScramble);
-        scanCubeBtn?.addEventListener("click", openCubeScanner);
-        resetEditorBtn?.addEventListener("click", resetColorEditor);
-        loadEditorStateBtn?.addEventListener("click", loadEditorState);
-        editorColorButtons.forEach(({ face, button }) => {
-          button?.addEventListener("click", () => {
-            state.editorSelectedFace = face;
-            updateUi();
-          });
-        });
-        colorEditorPrevFaceBtn?.addEventListener("click", () => {
-          const currentIndex = COLOR_EDITOR_FACE_ORDER.indexOf(state.editorCurrentFace);
-          const nextIndex = (currentIndex - 1 + COLOR_EDITOR_FACE_ORDER.length) % COLOR_EDITOR_FACE_ORDER.length;
-          state.editorCurrentFace = COLOR_EDITOR_FACE_ORDER[nextIndex];
-          updateUi();
-        });
-        colorEditorNextFaceBtn?.addEventListener("click", () => {
-          const currentIndex = COLOR_EDITOR_FACE_ORDER.indexOf(state.editorCurrentFace);
-          const nextIndex = (currentIndex + 1) % COLOR_EDITOR_FACE_ORDER.length;
-          state.editorCurrentFace = COLOR_EDITOR_FACE_ORDER[nextIndex];
-          updateUi();
-        });
+        loadScrambleBtn?.addEventListener("click", practiceController.loadCustomScramble);
+        savePracticeScrambleBtn?.addEventListener("click", practiceController.savePracticeScramble);
+        loadPracticeScrambleBtn?.addEventListener("click", practiceController.loadSavedPracticeScramble);
         toCrossBtn.addEventListener("click", solveToWhiteCross);
         toWhiteBtn.addEventListener("click", solveToWhiteFace);
         toMiddleBtn.addEventListener("click", solveToMiddleLayer);
@@ -870,76 +592,10 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         customScrambleInputEl?.addEventListener("keydown", (event) => {
           if (event.key === "Enter") {
             event.preventDefault();
-            loadCustomScramble();
+            practiceController.loadCustomScramble();
           }
         });
         customScrambleInputEl?.addEventListener("input", () => updateUi());
-        colorEditorNetEl?.addEventListener("click", onColorEditorClick);
-        const originalColorEditorParent = colorEditorSheetEl?.parentElement || null;
-        const closeColorEditor = (loadOnClose = false) => {
-          if (!colorEditorExpanderEl?.open) return;
-          colorEditorExpanderEl.open = false;
-          if (colorEditorToggleEl) {
-            colorEditorToggleEl.textContent = "Open Color Editor";
-          }
-          if (colorEditorBackdropEl) {
-            colorEditorBackdropEl.style.display = "none";
-          }
-          if (colorEditorSheetEl && originalColorEditorParent && colorEditorModalEl) {
-            originalColorEditorParent.appendChild(colorEditorSheetEl);
-            colorEditorModalEl.style.display = "none";
-          }
-          drawColorEditorNet();
-          updateUi();
-          if (loadOnClose) {
-            loadEditorState();
-          }
-        };
-        colorEditorExpanderEl?.addEventListener("toggle", () => {
-          if (colorEditorToggleEl) {
-            colorEditorToggleEl.textContent = colorEditorExpanderEl.open ? "Minimize Color Editor" : "Open Color Editor";
-          }
-          if (colorEditorBackdropEl) {
-            colorEditorBackdropEl.style.display = colorEditorExpanderEl.open ? "block" : "none";
-          }
-          if (colorEditorSheetEl && originalColorEditorParent && colorEditorModalEl) {
-            if (colorEditorExpanderEl.open) {
-              colorEditorModalEl.appendChild(colorEditorSheetEl);
-              colorEditorModalEl.style.display = "block";
-            } else {
-              originalColorEditorParent.appendChild(colorEditorSheetEl);
-              colorEditorModalEl.style.display = "none";
-            }
-          }
-          drawColorEditorNet();
-          updateUi();
-        });
-        colorEditorBackdropEl?.addEventListener("click", () => {
-          closeColorEditor(false);
-        });
-        startScannerBtn?.addEventListener("click", startCubeScannerCamera);
-        captureScannerBtn?.addEventListener("click", () => captureCurrentScannerFace());
-        scannerUseFaceBtn?.addEventListener("click", acceptCurrentScannerFace);
-        scannerRescanBtn?.addEventListener("click", clearPendingScannerFace);
-        scannerFaceEditorNetEl?.addEventListener("click", onScannerFaceEditorClick);
-        scannerColorButtons.forEach(({ face, button }) => {
-          button?.addEventListener("click", () => {
-            cubeScanner.selectedFace = face;
-            updateScannerReviewUi();
-          });
-        });
-        closeScannerBtn?.addEventListener("click", () => closeCubeScanner(false));
-        cubeScannerBackdropEl?.addEventListener("click", () => closeCubeScanner(false));
-        document.addEventListener("keydown", (event) => {
-          if (event.key !== "Escape" || !colorEditorExpanderEl?.open) return;
-          event.preventDefault();
-          closeColorEditor(true);
-        });
-        document.addEventListener("keydown", (event) => {
-          if (event.key !== "Escape" || !cubeScanner.active) return;
-          event.preventDefault();
-          closeCubeScanner(false);
-        });
         zoomSliderEl.addEventListener("input", updateZoomFromSlider);
         zoomResetBtn.addEventListener("click", resetZoomToDefault);
         speedSliderEl.addEventListener("input", updateAnimationSpeed);
@@ -1071,46 +727,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         requestAnimationFrame(renderLoop);
       }
 
-      function setMode(mode) {
-        state.mode = mode;
-        state.cfopStageFloor = 0;
-        modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
-        renderFilterList();
-        if (mode === "FREE") {
-          resetFreeMode(true, false);
-          statusTextEl.textContent = "FREE mode: New Case generates a scramble, and Reset restores that scramble.";
-        } else if (mode === "CROSS") {
-          resetCrossTrainingMode(true);
-          statusTextEl.textContent = "CROSS mode: solve the white cross only. Timer stops when the cross is solved.";
-        } else {
-          chooseRandomCase();
-        }
-      }
-
-      function resetFreeMode(generateNew = true, animateScramble = false) {
-        clearMoveAnimations();
-        resetCameraOrientation();
-        state.currentCase = { name: "FREE SCRAMBLE", algorithm: "Hidden" };
-        if (generateNew || !parseAlgorithm(state.currentSetupAlgorithm).length) {
-          state.currentSetupAlgorithm = generateScramble(24);
-        }
-        state.revealed = true;
-        cube = createSolvedState();
-        state.setupHistory = parseAlgorithm(state.currentSetupAlgorithm);
-        if (animateScramble) {
-          resetStats();
-          syncCubeMaterials();
-          updateUi();
-          replayCurrentScramble();
-          return;
-        }
-        applyAlgorithm(state.currentSetupAlgorithm, false);
-        resetStats();
-        syncCubeMaterials();
-        updateUi();
-        statusTextEl.textContent = "Scrambled cube ready. Solve it or press New Case for another scramble.";
-      }
-
       async function computeCrossTrainingSolution() {
         const requestId = ++crossTrainingRequestId;
         setCurrentCfopCrossSolution([]);
@@ -1128,1061 +744,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         updateUi();
       }
 
-      function resetCrossTrainingMode(generateNew = true) {
-        clearMoveAnimations();
-        resetCameraOrientation();
-        state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
-        if (generateNew || !parseAlgorithm(state.currentSetupAlgorithm).length) {
-          state.currentSetupAlgorithm = generateScramble(24);
-        }
-        state.revealed = false;
-        cube = createSolvedState();
-        applyAlgorithm(state.currentSetupAlgorithm, false);
-        resetStats();
-        state.setupHistory = parseAlgorithm(state.currentSetupAlgorithm);
-        syncCubeMaterials();
-        updateUi();
-        statusTextEl.textContent = "Cross scramble ready. Solve the white cross in as few moves as you can.";
-        void computeCrossTrainingSolution();
-      }
-
-      function chooseRandomCase() {
-        clearMoveAnimations();
-        resetCameraOrientation();
-        const pool = getCasesForMode(state.mode).filter((item) => state.selectedCases[state.mode].includes(item.name));
-        if (pool.length === 0) {
-          state.currentCase = null;
-          resetStats();
-          updateUi();
-          statusTextEl.textContent = `No ${state.mode} cases selected. Use the case filter to enable some.`;
-          return;
-        }
-        state.currentCase = pool[Math.floor(Math.random() * pool.length)];
-        const baseSetup = invertAlgorithm(state.currentCase.algorithm);
-        state.currentSetupAlgorithm = [baseSetup, state.currentCase.setupAuf || ""].filter(Boolean).join(" ");
-        state.revealed = false;
-        cube = createSolvedState();
-        applyAlgorithm(state.currentSetupAlgorithm, false);
-        resetStats();
-        state.setupHistory = parseAlgorithm(state.currentSetupAlgorithm);
-        syncCubeMaterials();
-        updateUi();
-        statusTextEl.textContent = `Solve ${state.currentCase.name}. Timer starts on your first move.`;
-      }
-
-      function resetCurrentCase() {
-        clearMoveAnimations();
-        resetCameraOrientation();
-        if (state.mode === "FREE") {
-          resetFreeMode(false, false);
-          return;
-        }
-        if (state.mode === "CROSS") {
-          resetCrossTrainingMode(false);
-          return;
-        }
-        cube = createSolvedState();
-        applyAlgorithm(state.currentSetupAlgorithm, false);
-        state.revealed = false;
-        resetStats();
-        state.setupHistory = parseAlgorithm(state.currentSetupAlgorithm);
-        syncCubeMaterials();
-        updateUi();
-        statusTextEl.textContent = `Reset to ${state.currentCase.name}.`;
-      }
-
-      function revealAlgorithm() {
-        state.revealed = true;
-        updateUi();
-      }
-
-      function loadCustomScramble() {
-        const raw = String(customScrambleInputEl?.value || "").trim();
-        const moves = parseAlgorithm(raw);
-        if (!moves.length) {
-          statusTextEl.textContent = "Enter a valid scramble before loading it.";
-          updateUi();
-          return;
-        }
-
-        clearMoveAnimations();
-        resetCameraOrientation();
-        state.currentSetupAlgorithm = moves.join(" ");
-        state.revealed = true;
-        cube = createSolvedState();
-        applyAlgorithm(state.currentSetupAlgorithm, false);
-        resetStats();
-        state.setupHistory = moves.slice();
-        syncCubeMaterials();
-
-        if (state.mode === "CROSS") {
-          state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
-          state.revealed = false;
-          statusTextEl.textContent = "Custom cross scramble loaded.";
-          updateUi();
-          void computeCrossTrainingSolution();
-          return;
-        }
-
-        if (state.mode === "FREE") {
-          state.currentCase = { name: "FREE SCRAMBLE", algorithm: "Hidden" };
-          statusTextEl.textContent = "Custom scramble loaded.";
-          updateUi();
-          return;
-        }
-
-        statusTextEl.textContent = "Custom scrambles are available in FREE and CROSS modes.";
-        updateUi();
-      }
-
-      function savePracticeScramble() {
-        const scramble = String(state.currentSetupAlgorithm || "").trim();
-        if (!scramble) {
-          statusTextEl.textContent = "There is no scramble to save yet.";
-          updateUi();
-          return;
-        }
-        try {
-          localStorage.setItem(STORAGE_KEYS.practiceScramble, scramble);
-          statusTextEl.textContent = `Saved scramble for practice.`;
-        } catch (error) {
-          statusTextEl.textContent = "Could not save the scramble in this browser.";
-        }
-        updateUi();
-      }
-
-      function loadSavedPracticeScramble() {
-        let scramble = "";
-        try {
-          scramble = String(localStorage.getItem(STORAGE_KEYS.practiceScramble) || "").trim();
-        } catch (error) {}
-        const moves = parseAlgorithm(scramble);
-        if (!moves.length) {
-          statusTextEl.textContent = "No saved scramble found yet.";
-          updateUi();
-          return;
-        }
-        if (customScrambleInputEl) {
-          customScrambleInputEl.value = scramble;
-        }
-        loadCustomScramble();
-      }
-
-      function resetColorEditor() {
-        colorEditorState = createSolvedState();
-        state.editorCurrentFace = "U";
-        state.editorSelectedFace = "U";
-        updateUi();
-      }
-
-      function getColorEditorOrientationHint(face) {
-        const hint = getScannerOrientationHint(face);
-        return `Top: ${hint.top}.`;
-      }
-
-      function openCubeScanner() {
-        cubeScanner.active = true;
-        cubeScanner.index = 0;
-        cubeScanner.captured = createSolvedState();
-        cubeScanner.lastDetailed = null;
-        cubeScanner.history = [];
-        cubeScanner.pendingFace = null;
-        cubeScanner.pendingDetected = null;
-        cubeScanner.selectedFace = "U";
-        cubeScanner.stableSignature = "";
-        cubeScanner.stableFrames = 0;
-        if (cubeScannerBackdropEl) cubeScannerBackdropEl.style.display = "block";
-        if (cubeScannerModalEl) cubeScannerModalEl.style.display = "block";
-        const videoShell = cubeScannerVideoEl?.parentElement;
-        if (videoShell) videoShell.classList.remove("ready");
-        renderCubeScannerProgress();
-        updateCubeScannerPrompt();
-        drawCubeScannerPreviewNet();
-        updateScannerReviewUi();
-        if (cubeScannerStatusEl) {
-          cubeScannerStatusEl.textContent = "Starting camera. Hold one face flat inside the 3x3 guide, then press Capture Face.";
-        }
-        void startCubeScannerCamera();
-      }
-
-      function closeCubeScanner(loadOnClose) {
-        cubeScanner.active = false;
-        if (cubeScanner.raf) {
-          cancelAnimationFrame(cubeScanner.raf);
-          cubeScanner.raf = 0;
-        }
-        if (cubeScanner.stream) {
-          cubeScanner.stream.getTracks().forEach((track) => track.stop());
-          cubeScanner.stream = null;
-        }
-        cubeScanner.lastDetailed = null;
-        cubeScanner.history = [];
-        cubeScanner.pendingFace = null;
-        cubeScanner.pendingDetected = null;
-        cubeScanner.stableSignature = "";
-        cubeScanner.stableFrames = 0;
-        if (cubeScannerVideoEl) {
-          cubeScannerVideoEl.srcObject = null;
-        }
-        const videoShell = cubeScannerVideoEl?.parentElement;
-        if (videoShell) videoShell.classList.remove("ready");
-        if (cubeScannerBackdropEl) cubeScannerBackdropEl.style.display = "none";
-        if (cubeScannerModalEl) cubeScannerModalEl.style.display = "none";
-        updateScannerReviewUi();
-        if (loadOnClose) {
-          colorEditorState = cloneState(cubeScanner.captured);
-          drawColorEditorNet();
-          state.editorCurrentFace = "U";
-          state.editorSelectedFace = "U";
-          if (colorEditorExpanderEl && !colorEditorExpanderEl.open) {
-            colorEditorExpanderEl.open = true;
-          }
-          loadEditorState();
-        }
-      }
-
-      async function startCubeScannerCamera() {
-        if (!cubeScanner.active) {
-          openCubeScanner();
-        }
-        try {
-          if (cubeScanner.stream) return;
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: "environment",
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
-            audio: false
-          });
-          cubeScanner.stream = stream;
-          if (cubeScannerVideoEl) {
-            cubeScannerVideoEl.srcObject = stream;
-            await cubeScannerVideoEl.play();
-            cubeScannerVideoEl.parentElement?.classList.add("ready");
-          }
-          if (cubeScannerStatusEl) {
-            cubeScannerStatusEl.textContent = "Camera ready. Center the requested face in the guide, then press Capture Face.";
-          }
-          renderCubeScannerOverlay();
-        } catch (error) {
-          cubeScannerVideoEl?.parentElement?.classList.remove("ready");
-          if (cubeScannerStatusEl) {
-            cubeScannerStatusEl.textContent = "Could not access the camera. Check permission settings and try again.";
-          }
-        }
-      }
-
-      function renderCubeScannerProgress() {
-        if (!cubeScannerProgressEl) return;
-        cubeScannerProgressEl.innerHTML = cubeScanner.faceOrder.map((face, index) => {
-          const className = index < cubeScanner.index
-            ? "scanner-face-pill done"
-            : index === cubeScanner.index
-              ? "scanner-face-pill active"
-              : "scanner-face-pill";
-          return `<div class="${className}">${FACE_COLOR_NAMES[face]}</div>`;
-        }).join("");
-      }
-
-      function updateCubeScannerPrompt() {
-        const face = cubeScanner.faceOrder[cubeScanner.index];
-        if (!face || !cubeScannerPromptEl) return;
-        cubeScannerPromptEl.innerHTML = `Show the <span class="scanner-stage">${FACE_COLOR_NAMES[face]}</span> face centered in the guide, with the stickers facing the camera and the top row level.`;
-        updateCubeScannerOrientation(face);
-        renderCubeScannerProgress();
-      }
-
-      function getScannerOrientationHint(face) {
-        switch (face) {
-          case "U":
-            return {
-              top: "Orange",
-              bottom: "Red",
-              left: "Blue",
-              right: "Green",
-              extra: "Keep the Red face along the bottom edge of the Yellow face."
-            };
-          case "D":
-            return {
-              top: "Red",
-              bottom: "Orange",
-              left: "Blue",
-              right: "Green",
-              extra: "Keep the Red face along the top edge of the White face."
-            };
-          case "F":
-            return {
-              top: "Yellow",
-              bottom: "White",
-              left: "Blue",
-              right: "Green",
-              extra: "This is the Red face."
-            };
-          case "R":
-            return {
-              top: "Yellow",
-              bottom: "White",
-              left: "Red",
-              right: "Orange",
-              extra: "This is the Green face."
-            };
-          case "B":
-            return {
-              top: "Yellow",
-              bottom: "White",
-              left: "Green",
-              right: "Blue",
-              extra: "This is the Orange face."
-            };
-          case "L":
-            return {
-              top: "Yellow",
-              bottom: "White",
-              left: "Orange",
-              right: "Red",
-              extra: "This is the Blue face."
-            };
-          default:
-            return {
-              top: "Yellow",
-              bottom: "White",
-              left: "Blue",
-              right: "Green",
-              extra: "Keep the face flat and the top row level."
-            };
-        }
-      }
-
-      function getAllowedScannerColors(face) {
-        switch (face) {
-          case "U":
-            return new Set(["U", "F", "R", "B", "L"]);
-          case "D":
-            return new Set(["D", "F", "R", "B", "L"]);
-          case "F":
-            return new Set(["F", "U", "D", "R", "L"]);
-          case "B":
-            return new Set(["B", "U", "D", "R", "L"]);
-          case "R":
-            return new Set(["R", "U", "D", "F", "B"]);
-          case "L":
-            return new Set(["L", "U", "D", "F", "B"]);
-          default:
-            return new Set(FACE_ORDER);
-        }
-      }
-
-      function updateCubeScannerOrientation(face) {
-        if (!cubeScannerOrientationEl) return;
-        const hint = getScannerOrientationHint(face);
-        cubeScannerOrientationEl.innerHTML = `Top: <strong>${hint.top}</strong>.`;
-      }
-
-      function getScannerGuideMetrics() {
-          if (!cubeScannerOverlayEl) return null;
-          const width = cubeScannerOverlayEl.width;
-          const height = cubeScannerOverlayEl.height;
-          const size = Math.min(width, height) * 0.52;
-          const tile = size / 3;
-          const startX = (width - size) / 2;
-          const startY = (height - size) / 2;
-          return { width, height, size, tile, startX, startY };
-        }
-
-      function getDefaultScannerQuad() {
-        const metrics = getScannerGuideMetrics();
-        if (!metrics) return null;
-        const { startX, startY, size } = metrics;
-        return [
-          { x: startX, y: startY },
-          { x: startX + size, y: startY },
-          { x: startX + size, y: startY + size },
-          { x: startX, y: startY + size }
-        ];
-      }
-
-      function ensureScannerQuad() {
-        if (!cubeScanner.quad) {
-          cubeScanner.quad = getDefaultScannerQuad();
-        }
-        return cubeScanner.quad;
-      }
-
-      function bilerpQuadPoint(quad, u, v) {
-        const topX = quad[0].x + (quad[1].x - quad[0].x) * u;
-        const topY = quad[0].y + (quad[1].y - quad[0].y) * u;
-        const bottomX = quad[3].x + (quad[2].x - quad[3].x) * u;
-        const bottomY = quad[3].y + (quad[2].y - quad[3].y) * u;
-        return {
-          x: topX + (bottomX - topX) * v,
-          y: topY + (bottomY - topY) * v
-        };
-      }
-
-      function getScannerOverlayPoint(event) {
-        if (!cubeScannerOverlayEl) return null;
-        const rect = cubeScannerOverlayEl.getBoundingClientRect();
-        const scaleX = cubeScannerOverlayEl.width / rect.width;
-        const scaleY = cubeScannerOverlayEl.height / rect.height;
-        return {
-          x: (event.clientX - rect.left) * scaleX,
-          y: (event.clientY - rect.top) * scaleY
-        };
-      }
-
-      function renderCubeScannerOverlay() {
-        if (!cubeScanner.active || !cubeScannerOverlayCtx || !cubeScannerOverlayEl) return;
-        const ctx = cubeScannerOverlayCtx;
-        const metrics = getScannerGuideMetrics();
-        if (!metrics) return;
-        const { width, height, tile, startX, startY, size } = metrics;
-
-        ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "rgba(0,0,0,0.28)";
-        ctx.fillRect(0, 0, width, height);
-        ctx.clearRect(startX - 12, startY - 12, size + 24, size + 24);
-
-        ctx.strokeStyle = "rgba(255,255,255,0.86)";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(startX, startY, size, size);
-
-        for (let i = 1; i < 3; i++) {
-          ctx.beginPath();
-          ctx.moveTo(startX + i * tile, startY);
-          ctx.lineTo(startX + i * tile, startY + size);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(startX, startY + i * tile);
-          ctx.lineTo(startX + size, startY + i * tile);
-          ctx.stroke();
-        }
-
-        ctx.strokeStyle = "rgba(0, 200, 150, 0.9)";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(startX + tile + 4, startY + tile + 4, tile - 8, tile - 8);
-
-          if (cubeScannerVideoEl?.videoWidth) {
-            const detailed = sampleScannerFaceDetailed();
-            cubeScanner.lastDetailed = detailed;
-            updateCubeScannerQuality(detailed);
-            drawCubeScannerPreviewNet();
-          } else if (cubeScannerQualityEl) {
-            cubeScanner.lastDetailed = null;
-            cubeScanner.stableSignature = "";
-            cubeScanner.stableFrames = 0;
-            cubeScannerQualityEl.textContent = "Waiting for camera feed.";
-            cubeScannerQualityEl.className = "scanner-quality";
-            drawCubeScannerPreviewNet();
-            updateScannerReviewUi();
-          }
-
-        cubeScanner.raf = requestAnimationFrame(renderCubeScannerOverlay);
-      }
-
-      function captureCurrentScannerFace(precomputedDetailed = null) {
-        if (!cubeScannerVideoEl || !cubeScannerVideoEl.videoWidth) {
-          if (cubeScannerStatusEl) {
-            cubeScannerStatusEl.textContent = "Start the camera before capturing a face.";
-          }
-          return;
-        }
-
-        const face = cubeScanner.faceOrder[cubeScanner.index];
-        const detailed = precomputedDetailed
-          ? precomputedDetailed
-          : (cubeScanner.lastDetailed || sampleScannerFaceDetailed());
-        const captured = detailed ? mirrorScannerFaceDetailed(detailed).face : null;
-        const verification = verifyScannerCapture(face, detailed);
-        if (!captured) {
-          if (cubeScannerStatusEl) {
-            cubeScannerStatusEl.textContent = "Could not read that face. Try again with steadier lighting and alignment.";
-          }
-          return;
-        }
-
-        cubeScanner.pendingFace = face;
-        cubeScanner.pendingDetected = captured.slice();
-        cubeScanner.selectedFace = captured[0] || face;
-        updateScannerReviewUi();
-        if (cubeScannerStatusEl) {
-          cubeScannerStatusEl.textContent = verification.ok
-            ? `${FACE_COLOR_NAMES[face]} face captured. Review it, edit if needed, then click Use Face.`
-            : `${FACE_COLOR_NAMES[face]} face captured with a warning. Fix any wrong stickers, then click Use Face or Rescan Face.`;
-        }
-      }
-
-      function clearPendingScannerFace() {
-        cubeScanner.pendingFace = null;
-        cubeScanner.pendingDetected = null;
-        updateScannerReviewUi();
-        drawCubeScannerPreviewNet();
-        const face = cubeScanner.faceOrder[cubeScanner.index];
-        if (cubeScannerStatusEl && face) {
-          cubeScannerStatusEl.textContent = `Rescan the ${FACE_COLOR_NAMES[face]} face and press Capture Face when the live preview looks right.`;
-        }
-      }
-
-      function acceptCurrentScannerFace() {
-        const face = cubeScanner.pendingFace;
-        const captured = cubeScanner.pendingDetected;
-        if (!face || !captured) return;
-
-        const normalized = captured.slice();
-        normalized[4] = face;
-        cubeScanner.captured[face] = normalized;
-        cubeScanner.index += 1;
-        cubeScanner.lastDetailed = null;
-        cubeScanner.history = [];
-        cubeScanner.pendingFace = null;
-        cubeScanner.pendingDetected = null;
-        cubeScanner.stableSignature = "";
-        cubeScanner.stableFrames = 0;
-        drawCubeScannerPreviewNet();
-        updateScannerReviewUi();
-
-        if (cubeScanner.index >= cubeScanner.faceOrder.length) {
-          if (cubeScannerStatusEl) {
-            cubeScannerStatusEl.textContent = "All six faces captured. Loading cube state.";
-          }
-          closeCubeScanner(true);
-          return;
-        }
-
-        updateCubeScannerPrompt();
-        if (cubeScannerStatusEl) {
-          const nextFace = cubeScanner.faceOrder[cubeScanner.index];
-          cubeScannerStatusEl.textContent = `${FACE_COLOR_NAMES[face]} face saved. Now show the ${FACE_COLOR_NAMES[nextFace]} face.`;
-        }
-      }
-
-      function sampleScannerFace() {
-        const detailed = sampleScannerFaceDetailed();
-        return detailed ? detailed.face : null;
-      }
-
-      function smoothScannerDetailed(detailed) {
-        if (!detailed) {
-          cubeScanner.history = [];
-          return null;
-        }
-        cubeScanner.history.push(detailed);
-        if (cubeScanner.history.length > 6) {
-          cubeScanner.history.shift();
-        }
-        const smoothedFace = [];
-        const smoothedConfidences = [];
-        for (let index = 0; index < 9; index++) {
-          const votes = new Map();
-          let totalConfidence = 0;
-          for (let historyIndex = 0; historyIndex < cubeScanner.history.length; historyIndex++) {
-            const past = cubeScanner.history[historyIndex];
-            const ageWeight = 1 + historyIndex * 0.2;
-            const face = past.face[index];
-            const confidence = (past.confidences[index] || 0) * ageWeight;
-            votes.set(face, (votes.get(face) || 0) + confidence);
-            totalConfidence += confidence;
-          }
-          let bestFace = detailed.face[index];
-          let bestVote = -1;
-          for (const [face, vote] of votes.entries()) {
-            if (vote > bestVote) {
-              bestFace = face;
-              bestVote = vote;
-            }
-          }
-          smoothedFace.push(bestFace);
-          smoothedConfidences.push(totalConfidence / Math.max(cubeScanner.history.length, 1));
-        }
-        return { face: smoothedFace, confidences: smoothedConfidences };
-      }
-
-      function mirrorScannerFaceDetailed(detailed) {
-        const indexMap = [2, 1, 0, 5, 4, 3, 8, 7, 6];
-        return {
-          face: indexMap.map((index) => detailed.face[index]),
-          confidences: indexMap.map((index) => detailed.confidences[index])
-        };
-      }
-
-      function sampleScannerFaceDetailed() {
-        if (!cubeScannerVideoEl || !cubeScannerOverlayEl) return null;
-        const metrics = getScannerGuideMetrics();
-        if (!metrics) return null;
-        const offscreen = document.createElement("canvas");
-        offscreen.width = cubeScannerOverlayEl.width;
-        offscreen.height = cubeScannerOverlayEl.height;
-        const offCtx = offscreen.getContext("2d");
-        if (!offCtx) return null;
-
-        offCtx.save();
-        offCtx.translate(offscreen.width, 0);
-        offCtx.scale(-1, 1);
-        offCtx.drawImage(cubeScannerVideoEl, 0, 0, offscreen.width, offscreen.height);
-        offCtx.restore();
-
-        const { tile, startX, startY } = metrics;
-          const face = [];
-          const confidences = [];
-          for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 3; col++) {
-              const perspectiveX = (col - 1) * tile * 0.05;
-              const perspectiveY = (row - 1) * tile * 0.08;
-              const centerX = startX + col * tile + tile * 0.5 + perspectiveX;
-              const centerY = startY + row * tile + tile * 0.5 + perspectiveY;
-              const sampleSize = Math.max(7, Math.round(tile * 0.11));
-              const offsetScale = tile * 0.09;
-              const offsets = [
-                [0, 0],
-                [-1, 0], [1, 0],
-                [0, -1], [0, 1]
-              ];
-              const votes = new Map();
-              let confidenceSum = 0;
-              for (const [mx, my] of offsets) {
-                const dx = mx * offsetScale;
-              const dy = my * offsetScale;
-              const sampleX = Math.round(centerX + dx - sampleSize / 2);
-                const sampleY = Math.round(centerY + dy - sampleSize / 2);
-                const imageData = offCtx.getImageData(sampleX, sampleY, sampleSize, sampleSize).data;
-                const classified = classifySampledColor(imageData);
-                const weight = mx === 0 && my === 0 ? 3 : 1;
-                confidenceSum += classified.confidence * weight;
-                votes.set(classified.face, (votes.get(classified.face) || 0) + classified.confidence * weight);
-              }
-            let bestFace = "U";
-            let bestVote = -1;
-            for (const [voteFace, voteScore] of votes.entries()) {
-              if (voteScore > bestVote) {
-                bestFace = voteFace;
-                bestVote = voteScore;
-              }
-              }
-              face.push(bestFace);
-              confidences.push(confidenceSum / (offsets.length + 2));
-            }
-          }
-        return smoothScannerDetailed({ face, confidences });
-      }
-
-      function updateCubeScannerAutoCapture(detailed) {
-        const face = cubeScanner.faceOrder[cubeScanner.index];
-        if (!detailed || !face) {
-          cubeScanner.stableSignature = "";
-          cubeScanner.stableFrames = 0;
-          return;
-        }
-        const verification = verifyScannerCapture(face, detailed);
-        if (!verification.ok) {
-          cubeScanner.stableSignature = "";
-          cubeScanner.stableFrames = 0;
-          return;
-        }
-        const minConfidence = Math.min(...detailed.confidences);
-        const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
-        const edgeAndCornerConfident = detailed.confidences.filter((value, index) => index !== 4 && value >= 0.04).length;
-        if (minConfidence < 0.015 || avgConfidence < 0.05 || edgeAndCornerConfident < 6) {
-          cubeScanner.stableSignature = "";
-          cubeScanner.stableFrames = 0;
-          return;
-        }
-        const signature = `${face}:${detailed.face.join("")}`;
-        if (cubeScanner.stableSignature === signature) {
-          cubeScanner.stableFrames += 1;
-        } else {
-          cubeScanner.stableSignature = signature;
-          cubeScanner.stableFrames = 1;
-        }
-        if (cubeScanner.stableFrames >= 16) {
-          captureCurrentScannerFace(detailed);
-        }
-      }
-
-      function updateCubeScannerQuality(detailed) {
-        if (!cubeScannerQualityEl) return;
-        const face = cubeScanner.faceOrder[cubeScanner.index];
-        if (!detailed || !face) {
-          cubeScannerQualityEl.textContent = "Hold the face flat and centered in the square guide.";
-          cubeScannerQualityEl.className = "scanner-quality";
-          return;
-        }
-
-        const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
-        const centerFace = detailed.face[4];
-        const centerOk = centerFace === face;
-        const detectedName = FACE_COLOR_NAMES[centerFace] || String(centerFace || "unknown");
-        const impossibleCount = countImpossibleScannerColors(face, detailed.face);
-
-        if (impossibleCount >= 8) {
-          cubeScannerQualityEl.textContent = `The guide still looks mostly like background or the wrong face. Fill the full ${FACE_COLOR_NAMES[face]} face into the 3x3 box.`;
-          cubeScannerQualityEl.className = "scanner-quality warn";
-          return;
-        }
-
-        if (centerOk && avgConfidence >= 0.03 && impossibleCount < 8) {
-          cubeScannerQualityEl.textContent = "Good scan window. Center color matches and the sticker read looks stable.";
-          cubeScannerQualityEl.className = "scanner-quality good";
-          return;
-        }
-
-        if (!centerOk) {
-          cubeScannerQualityEl.textContent = `Center sticker looks like ${detectedName} instead of ${FACE_COLOR_NAMES[face]}. Recenter that face.`;
-          cubeScannerQualityEl.className = "scanner-quality warn";
-          return;
-        }
-
-        if (avgConfidence < 0.025) {
-          cubeScannerQualityEl.textContent = "Scan looks noisy. Move closer, reduce glare, and keep the face flatter to the camera.";
-          cubeScannerQualityEl.className = "scanner-quality warn";
-          return;
-        }
-
-        cubeScannerQualityEl.textContent = "Almost there. Keep the top row level and fill more of the square guide before capturing.";
-        cubeScannerQualityEl.className = "scanner-quality";
-      }
-
-      function verifyScannerCapture(face, detailed) {
-        if (!detailed) {
-          return { ok: false, message: "Could not read that face. Try again with steadier lighting and alignment." };
-        }
-        const avgConfidence = detailed.confidences.reduce((sum, value) => sum + value, 0) / Math.max(detailed.confidences.length, 1);
-        const centerFace = detailed.face[4];
-        const impossibleCount = countImpossibleScannerColors(face, detailed.face);
-        if (centerFace !== face) {
-          const detectedName = FACE_COLOR_NAMES[centerFace] || String(centerFace || "unknown");
-          return {
-            ok: false,
-            message: `Center sticker looks like ${detectedName} instead of ${FACE_COLOR_NAMES[face]}. Reorient the cube and try again.`
-          };
-        }
-        if (impossibleCount >= 8) {
-          return {
-            ok: false,
-            message: `The guide still looks like a partial face. Fill the full 3x3 ${FACE_COLOR_NAMES[face]} face before capturing.`
-          };
-        }
-        if (avgConfidence < 0.004) {
-          return {
-            ok: false,
-            message: "Scan quality is too low to trust. Move closer, reduce glare, and keep the face flat in the guide."
-          };
-        }
-        return {
-          ok: true,
-          message: `${FACE_COLOR_NAMES[face]} face captured and verified.`
-        };
-      }
-
-      function countImpossibleScannerColors(face, stickers) {
-        const adjacent = SCANNER_ADJACENT_FACE_MAP[face] || new Set();
-        let impossible = 0;
-        for (const sticker of stickers) {
-          if (sticker === face) continue;
-          if (adjacent.has(sticker)) continue;
-          impossible += 1;
-        }
-        return impossible;
-      }
-
-      function classifySampledColor(imageData) {
-          const pixels = [];
-          for (let i = 0; i < imageData.length; i += 4) {
-            const alpha = imageData[i + 3];
-            if (alpha < 200) continue;
-            const pr = imageData[i];
-            const pg = imageData[i + 1];
-            const pb = imageData[i + 2];
-            const lum = pr * 0.2126 + pg * 0.7152 + pb * 0.0722;
-            pixels.push({ r: pr, g: pg, b: pb, lum });
-          }
-          if (!pixels.length) return { face: "U", confidence: 0 };
-          pixels.sort((a, b) => a.lum - b.lum);
-          const trim = Math.floor(pixels.length * 0.18);
-          const kept = pixels.slice(trim, Math.max(trim + 1, pixels.length - trim));
-          let totalR = 0;
-          let totalG = 0;
-          let totalB = 0;
-          for (const pixel of kept) {
-            totalR += pixel.r;
-            totalG += pixel.g;
-            totalB += pixel.b;
-          }
-          const r = totalR / kept.length;
-          const g = totalG / kept.length;
-          const b = totalB / kept.length;
-          const { h, s, v } = rgbToHsv(r, g, b);
-          const maxChannel = Math.max(r, g, b);
-          const minChannel = Math.min(r, g, b);
-          const channelSpread = maxChannel - minChannel;
-
-          const sum = Math.max(r + g + b, 1);
-          const nr = r / sum;
-          const ng = g / sum;
-          const nb = b / sum;
-
-          const hueTargets = {
-            U: 50,
-            F: 0,
-            B: 24,
-            R: 138,
-            L: 219
-          };
-
-          let bestFace = "U";
-          let bestDistance = Number.POSITIVE_INFINITY;
-          let secondDistance = Number.POSITIVE_INFINITY;
-          for (const [face, hex] of Object.entries(FACE_COLORS)) {
-            const [tr, tg, tb] = hexToRgb(hex);
-            const tsum = Math.max(tr + tg + tb, 1);
-            const tnr = tr / tsum;
-            const tng = tg / tsum;
-            const tnb = tb / tsum;
-            const normalizedDistance = Math.sqrt(
-              (nr - tnr) * (nr - tnr) +
-              (ng - tng) * (ng - tng) +
-              (nb - tnb) * (nb - tnb)
-            );
-            const rawDistance = Math.sqrt(
-              (r - tr) * (r - tr) +
-              (g - tg) * (g - tg) +
-              (b - tb) * (b - tb)
-            ) / 255;
-            let distance = normalizedDistance * 0.75 + rawDistance * 0.45;
-
-            if (face === "D") {
-              distance += s * 1.9;
-              distance += Math.max(0, 0.74 - v) * 0.75;
-              distance += (channelSpread / 255) * 0.5;
-              if (h >= 150 && h <= 250 && s > 0.09) {
-                distance += 0.3;
-              }
-            } else {
-              const hueDistance = circularHueDistance(h, hueTargets[face]) / 180;
-              distance += hueDistance * 0.75;
-              if (s < 0.12) {
-                distance += 0.24;
-              }
-              if (face === "U" && (h < 35 || h > 82)) distance += 0.3;
-              if (face === "F" && !(h <= 14 || h >= 344)) distance += 0.38;
-              if (face === "B" && (h < 10 || h > 42)) distance += 0.26;
-              if (face === "R" && (h < 78 || h > 168)) distance += 0.24;
-              if (face === "L" && (h < 170 || h > 270)) distance += 0.32;
-            }
-
-            // White stickers often pick up blue reflection. If the sample is bright and
-            // weakly saturated, strongly prefer white over blue.
-            if (face === "L" && s < 0.2 && v > 0.7) {
-              distance += 0.35;
-            }
-            if (face === "D" && s < 0.2 && v > 0.7) {
-              distance -= 0.12;
-            }
-
-            if (distance < bestDistance) {
-              secondDistance = bestDistance;
-              bestDistance = distance;
-              bestFace = face;
-            } else if (distance < secondDistance) {
-              secondDistance = distance;
-            }
-          }
-
-          const separation = secondDistance === Number.POSITIVE_INFINITY
-            ? 1
-            : Math.max(0, secondDistance - bestDistance);
-          const confidence = Math.max(0.03, Math.min(1, separation * 4.5 + (s * 0.22) + (v * 0.08)));
-          return { face: bestFace, confidence };
-        }
-
-      function circularHueDistance(a, b) {
-        const diff = Math.abs(a - b);
-        return Math.min(diff, 360 - diff);
-      }
-
-      function rgbToHsv(r, g, b) {
-        const rn = r / 255;
-        const gn = g / 255;
-        const bn = b / 255;
-        const max = Math.max(rn, gn, bn);
-        const min = Math.min(rn, gn, bn);
-        const delta = max - min;
-        let h = 0;
-
-        if (delta !== 0) {
-          if (max === rn) {
-            h = 60 * (((gn - bn) / delta) % 6);
-          } else if (max === gn) {
-            h = 60 * (((bn - rn) / delta) + 2);
-          } else {
-            h = 60 * (((rn - gn) / delta) + 4);
-          }
-        }
-
-        if (h < 0) h += 360;
-        const s = max === 0 ? 0 : delta / max;
-        const v = max;
-        return { h, s, v };
-      }
-
-      function drawCubeScannerPreviewNet() {
-          if (!cubeScannerPreviewNetEl || !cubeScannerPreviewNetCtx) return;
-          const ctx = cubeScannerPreviewNetCtx;
-          const canvas = cubeScannerPreviewNetEl;
-          const tile = 18;
-          const gap = 3;
-          const radius = 4;
-          const faceSpan = tile * 3 + gap * 2;
-          const layout = {
-            U: [1, 0],
-            L: [0, 1],
-            F: [1, 1],
-            R: [2, 1],
-            B: [3, 1],
-            D: [1, 2]
-          };
-          const totalWidth = faceSpan * 4;
-          const totalHeight = faceSpan * 3;
-          const offsetX = Math.floor((canvas.width - totalWidth) / 2);
-          const liveTile = 24;
-          const liveGap = 4;
-          const liveFaceSpan = liveTile * 3 + liveGap * 2;
-          const liveStartX = Math.floor((canvas.width - liveFaceSpan) / 2);
-          const liveStartY = 26;
-          const netOffsetY = 132;
-
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.fillStyle = "rgba(10, 10, 15, 0.18)";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.fillStyle = "rgba(154, 163, 178, 0.95)";
-          ctx.font = "600 12px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText("Live detected face", canvas.width / 2, 14);
-
-          const liveFace = cubeScanner.lastDetailed?.face || [];
-          for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 3; col++) {
-              const index = row * 3 + col;
-              const sticker = liveFace[index] || "D";
-              const x = liveStartX + col * (liveTile + liveGap);
-              const y = liveStartY + row * (liveTile + liveGap);
-              ctx.fillStyle = FACE_COLORS[sticker];
-              ctx.beginPath();
-              ctx.roundRect(x, y, liveTile, liveTile, 5);
-              ctx.fill();
-              ctx.strokeStyle = index === 4
-                ? "rgba(255,255,255,0.96)"
-                : "rgba(17,17,17,0.78)";
-              ctx.lineWidth = index === 4 ? 2.3 : 1.1;
-              ctx.stroke();
-            }
-          }
-
-          ctx.fillStyle = "rgba(154, 163, 178, 0.95)";
-          ctx.fillText("Captured faces", canvas.width / 2, 120);
-
-          for (const face of FACE_ORDER) {
-            const [gridX, gridY] = layout[face];
-            const startX = offsetX + gridX * faceSpan;
-            const startY = netOffsetY + gridY * faceSpan;
-            for (let row = 0; row < 3; row++) {
-              for (let col = 0; col < 3; col++) {
-                const index = row * 3 + col;
-              const sticker = cubeScanner.captured[face][index];
-              const x = startX + col * (tile + gap);
-              const y = startY + row * (tile + gap);
-              ctx.fillStyle = FACE_COLORS[sticker];
-              ctx.beginPath();
-              ctx.roundRect(x, y, tile, tile, radius);
-              ctx.fill();
-              ctx.strokeStyle = index === 4
-                ? "rgba(255,255,255,0.92)"
-                : "rgba(17,17,17,0.78)";
-              ctx.lineWidth = index === 4 ? 2.5 : 1.2;
-              ctx.stroke();
-            }
-          }
-        }
-      }
-
-      function updateScannerReviewUi() {
-        const hasPending = !!cubeScanner.pendingFace && Array.isArray(cubeScanner.pendingDetected);
-        if (scannerReviewEl) {
-          scannerReviewEl.classList.toggle("hidden", !hasPending);
-        }
-        scannerColorButtons.forEach(({ face, button }) => {
-          button?.classList.toggle("active", cubeScanner.selectedFace === face);
-        });
-        drawScannerFaceEditorNet();
-      }
-
-      function drawScannerFaceEditorNet() {
-        if (!scannerFaceEditorNetEl || !scannerFaceEditorNetCtx) return;
-        const ctx = scannerFaceEditorNetCtx;
-        const face = cubeScanner.pendingFace;
-        const stickers = cubeScanner.pendingDetected;
-        ctx.clearRect(0, 0, scannerFaceEditorNetEl.width, scannerFaceEditorNetEl.height);
-        if (!face || !stickers) return;
-
-        const tile = 58;
-        const gap = 6;
-        const radius = 9;
-        const faceSpan = tile * 3 + gap * 2;
-        const startX = Math.floor((scannerFaceEditorNetEl.width - faceSpan) / 2);
-        const startY = Math.floor((scannerFaceEditorNetEl.height - faceSpan) / 2);
-
-        for (let row = 0; row < 3; row++) {
-          for (let col = 0; col < 3; col++) {
-            const index = row * 3 + col;
-            const x = startX + col * (tile + gap);
-            const y = startY + row * (tile + gap);
-            const sticker = index === 4 ? face : stickers[index];
-            ctx.fillStyle = FACE_COLORS[sticker];
-            ctx.beginPath();
-            ctx.roundRect(x, y, tile, tile, radius);
-            ctx.fill();
-            ctx.strokeStyle = index === 4
-              ? "rgba(255,255,255,0.96)"
-              : "rgba(17,17,17,0.75)";
-            ctx.lineWidth = index === 4 ? 3 : 1.3;
-            ctx.stroke();
-          }
-        }
-      }
-
-      function getScannerFaceEditorStickerAtPoint(x, y) {
-        if (!scannerFaceEditorNetEl || !cubeScanner.pendingFace || !cubeScanner.pendingDetected) return null;
-        const tile = 58;
-        const gap = 6;
-        const faceSpan = tile * 3 + gap * 2;
-        const startX = Math.floor((scannerFaceEditorNetEl.width - faceSpan) / 2);
-        const startY = Math.floor((scannerFaceEditorNetEl.height - faceSpan) / 2);
-        if (x < startX || y < startY || x > startX + faceSpan || y > startY + faceSpan) return null;
-        for (let row = 0; row < 3; row++) {
-          for (let col = 0; col < 3; col++) {
-            const stickerX = startX + col * (tile + gap);
-            const stickerY = startY + row * (tile + gap);
-            if (x >= stickerX && x <= stickerX + tile && y >= stickerY && y <= stickerY + tile) {
-              return row * 3 + col;
-            }
-          }
-        }
-        return null;
-      }
-
-      function onScannerFaceEditorClick(event) {
-        if (!scannerFaceEditorNetEl || !cubeScanner.pendingFace || !cubeScanner.pendingDetected) return;
-        const rect = scannerFaceEditorNetEl.getBoundingClientRect();
-        const scaleX = scannerFaceEditorNetEl.width / rect.width;
-        const scaleY = scannerFaceEditorNetEl.height / rect.height;
-        const x = (event.clientX - rect.left) * scaleX;
-        const y = (event.clientY - rect.top) * scaleY;
-        const index = getScannerFaceEditorStickerAtPoint(x, y);
-        if (index === null || index === 4) return;
-        cubeScanner.pendingDetected[index] = cubeScanner.selectedFace;
-        drawScannerFaceEditorNet();
-      }
-
       function hexToRgb(hex) {
         const normalized = hex.replace("#", "");
         const value = parseInt(normalized, 16);
@@ -2191,132 +752,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           (value >> 8) & 255,
           value & 255
         ];
-      }
-
-      function loadEditorState() {
-        clearMoveAnimations();
-        resetCameraOrientation();
-        state.currentSetupAlgorithm = "";
-        state.setupHistory = [];
-        state.userHistory = [];
-        for (const face of FACE_ORDER) {
-          colorEditorState[face][4] = face;
-        }
-        cube = cloneState(colorEditorState);
-        resetStats();
-        syncCubeMaterials();
-
-        if (state.mode === "CROSS") {
-          state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
-          state.revealed = false;
-          statusTextEl.textContent = "Custom cube state loaded for cross training.";
-          updateUi();
-          void computeCrossTrainingSolution();
-          return;
-        }
-
-        if (state.mode === "FREE") {
-          state.currentCase = { name: "FREE CUSTOM STATE", algorithm: "Manual color entry" };
-          state.revealed = true;
-          statusTextEl.textContent = "Custom cube state loaded.";
-          updateUi();
-          return;
-        }
-
-        statusTextEl.textContent = "Color entry is available in FREE and CROSS modes.";
-        updateUi();
-      }
-
-      function getNetLayoutMetrics(canvas) {
-        const isEditor = canvas === colorEditorNetEl;
-        const tile = isEditor ? 20 : 14;
-        const gap = isEditor ? 2 : 1;
-        const radius = isEditor ? 4 : 3;
-        const faceSpan = tile * 3 + gap * 2;
-        const netWidth = faceSpan * 4;
-        const netHeight = faceSpan * 3;
-        const offsetX = Math.floor((canvas.width - netWidth) / 2);
-        const offsetY = Math.floor((canvas.height - netHeight) / 2);
-        const layout = {
-          U: [1, 0],
-          L: [0, 1],
-          F: [1, 1],
-          R: [2, 1],
-          B: [3, 1],
-          D: [1, 2]
-        };
-        return { tile, gap, radius, faceSpan, offsetX, offsetY, layout };
-      }
-
-      function onColorEditorClick(event) {
-        if (!colorEditorNetEl) return;
-        const rect = colorEditorNetEl.getBoundingClientRect();
-        const scaleX = colorEditorNetEl.width / rect.width;
-        const scaleY = colorEditorNetEl.height / rect.height;
-        const x = (event.clientX - rect.left) * scaleX;
-        const y = (event.clientY - rect.top) * scaleY;
-        const hit = getEditorStickerAtPoint(x, y);
-        if (!hit) return;
-        if (hit.index === 4) return;
-        colorEditorState[state.editorCurrentFace][hit.index] = state.editorSelectedFace;
-        updateUi();
-      }
-
-      function getEditorStickerAtPoint(x, y) {
-        if (!colorEditorNetEl) return null;
-        const tile = 72;
-        const gap = 6;
-        const faceSpan = tile * 3 + gap * 2;
-        const startX = Math.floor((colorEditorNetEl.width - faceSpan) / 2);
-        const startY = Math.floor((colorEditorNetEl.height - faceSpan) / 2);
-        if (x < startX || y < startY || x > startX + faceSpan || y > startY + faceSpan) return null;
-        for (let row = 0; row < 3; row++) {
-          for (let col = 0; col < 3; col++) {
-            const stickerX = startX + col * (tile + gap);
-            const stickerY = startY + row * (tile + gap);
-            if (x >= stickerX && x <= stickerX + tile && y >= stickerY && y <= stickerY + tile) {
-              return { face: state.editorCurrentFace, index: row * 3 + col };
-            }
-          }
-        }
-        return null;
-      }
-
-      function drawColorEditorNet() {
-        if (!colorEditorNetEl || !colorEditorNetCtx) return;
-        const ctx = colorEditorNetCtx;
-        const tile = 72;
-        const gap = 6;
-        const radius = 10;
-        const faceSpan = tile * 3 + gap * 2;
-        const startX = Math.floor((colorEditorNetEl.width - faceSpan) / 2);
-        const startY = Math.floor((colorEditorNetEl.height - faceSpan) / 2);
-        const face = state.editorCurrentFace;
-
-        ctx.clearRect(0, 0, colorEditorNetEl.width, colorEditorNetEl.height);
-        ctx.fillStyle = "rgba(10, 10, 15, 0.18)";
-        ctx.fillRect(0, 0, colorEditorNetEl.width, colorEditorNetEl.height);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(startX - 6, startY - 6, faceSpan + 12, faceSpan + 12);
-
-        for (let row = 0; row < 3; row++) {
-          for (let col = 0; col < 3; col++) {
-            const index = row * 3 + col;
-            const x = startX + col * (tile + gap);
-            const y = startY + row * (tile + gap);
-            const sticker = index === 4 ? face : colorEditorState[face][index];
-            ctx.fillStyle = FACE_COLORS[sticker];
-            ctx.beginPath();
-            ctx.roundRect(x, y, tile, tile, radius);
-            ctx.fill();
-            ctx.strokeStyle = index === 4
-              ? "rgba(255,255,255,0.96)"
-              : "rgba(17, 17, 17, 0.75)";
-            ctx.lineWidth = index === 4 ? 3 : 1.2;
-            ctx.stroke();
-          }
-        }
       }
 
       function setCurrentCfopCrossSolution(moves) {
@@ -2392,13 +827,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         crossRevealRowEl.style.display = crossMode ? "" : "none";
         customScrambleLabelEl.style.display = scramblePracticeMode ? "" : "none";
         customScrambleControlsEl.style.display = scramblePracticeMode ? "" : "none";
-        editorColorButtons.forEach(({ face, button }) => button?.classList.toggle("active", state.editorSelectedFace === face));
-        if (colorEditorFaceNameEl) {
-          colorEditorFaceNameEl.textContent = `${FACE_COLOR_NAMES[state.editorCurrentFace]} Face`;
-        }
-        if (colorEditorOrientationEl) {
-          colorEditorOrientationEl.textContent = getColorEditorOrientationHint(state.editorCurrentFace);
-        }
         stepMovesEl.innerHTML = formatBeginnerBreakdown(state.beginnerBreakdown);
         beginnerTeacherEl.innerHTML = formatBeginnerLesson(state.beginnerLessonKey || inferBeginnerLessonKey());
         statusTextEl.classList.toggle("solved", state.solved);
@@ -2422,9 +850,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         if (loadScrambleBtn) {
           loadScrambleBtn.disabled = animationState.active || state.beginnerSolving || !String(customScrambleInputEl?.value || "").trim();
         }
-        if (loadEditorStateBtn) {
-          loadEditorStateBtn.disabled = animationState.active || state.beginnerSolving;
-        }
+        colorEditorController.syncUi({ disabled: animationState.active || state.beginnerSolving });
         toCrossBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
         toWhiteBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
         toMiddleBtn.disabled = animationState.active || state.solved || state.beginnerSolving;
@@ -2445,7 +871,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         updateCaseStatsUi();
         updateSessionStatsUi();
         updateCfopStepStyles();
-        drawColorEditorNet();
       }
 
       function updateCfopStepStyles() {
@@ -2498,13 +923,13 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const current = new Set(state.selectedCases[state.mode]);
         if (enabled) current.add(name); else current.delete(name);
         state.selectedCases[state.mode] = Array.from(current);
-        saveSelectedCases();
+        saveSelectedCases(state.selectedCases);
       }
 
       function setAllCurrentFilters(enabled) {
         if (isScramblePracticeMode()) return;
         state.selectedCases[state.mode] = enabled ? getCasesForMode(state.mode).map((item) => item.name) : [];
-        saveSelectedCases();
+        saveSelectedCases(state.selectedCases);
         renderFilterList();
       }
 
@@ -2562,7 +987,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         existing.totalMs += state.elapsedMs;
         existing.recent = [...(existing.recent || []), state.elapsedMs].slice(-5);
         state.caseStats[key] = existing;
-        saveCaseStats();
+        saveCaseStats(state.caseStats);
         state.sessionStats.solves += 1;
         state.sessionStats.bestMs = Math.min(state.sessionStats.bestMs, state.elapsedMs);
         state.sessionStats.times = [...state.sessionStats.times, state.elapsedMs].slice(-50);
@@ -2572,7 +997,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const key = getCaseStatsKey();
         if (!key) return;
         delete state.caseStats[key];
-        saveCaseStats();
+        saveCaseStats(state.caseStats);
         updateCaseStatsUi();
       }
 
@@ -4345,46 +2770,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return stickers;
       }
 
-      function applyMovesToState(currentState, moves) {
-        let next = cloneState(currentState);
-        for (const move of moves) {
-          next = applyMoveToState(next, move);
-        }
-        return next;
-      }
-
-      function applyMoveToState(currentState, move) {
-        let next = cloneState(currentState);
-        const job = createMoveJob(move, move);
-        for (let step = 0; step < job.quarterTurns; step++) {
-          for (const layer of job.layers) {
-            next = rotateLayerOnState(next, layer.axis, layer.layer, layer.rotation);
-          }
-        }
-        return next;
-      }
-
-      function rotateLayerOnState(currentState, axis, layer, rotation) {
-        const next = cloneState(currentState);
-        for (const face of FACE_ORDER) {
-          for (let index = 0; index < 9; index++) {
-            const key = `${face}:${index}`;
-            const entry = faceletMap.get(key);
-            if (entry.position[axisIndex(axis)] !== layer) continue;
-
-            const rotatedPosition = rotateVector(entry.position, axis, rotation);
-            const rotatedNormal = rotateVector(entry.normal, axis, rotation);
-            const target = reverseFaceletMap.get(reverseKey(rotatedPosition, rotatedNormal));
-            next[target.face][target.index] = currentState[face][index];
-          }
-        }
-        return next;
-      }
-
-      function serializeState(currentState) {
-        return FACE_ORDER.map((face) => currentState[face].join("")).join("|");
-      }
-
       function clearMoveAnimations() {
         if (scrambleReplayTimeout) {
           window.clearTimeout(scrambleReplayTimeout);
@@ -4499,54 +2884,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         if (!fromUser) syncCubeMaterials();
       }
 
-      function parseAlgorithm(algorithm) {
-        return algorithm
-          .trim()
-          .split(/\s+/)
-          .map((token) => token.replace(/[()]/g, "").replace(/1/g, "").replace(/3/g, "'"))
-          .map((token) => token.replace(/2'$/g, "2"))
-          .filter(Boolean);
-      }
-
-      function generateScramble(length) {
-        const bases = ["U", "D", "R", "L", "F", "B"];
-        const suffixes = ["", "'", "2"];
-        const axisGroup = {
-          U: "y",
-          D: "y",
-          R: "x",
-          L: "x",
-          F: "z",
-          B: "z"
-        };
-
-        const moves = [];
-        let lastBase = null;
-        let lastAxis = null;
-
-        while (moves.length < length) {
-          const base = bases[Math.floor(Math.random() * bases.length)];
-          const axis = axisGroup[base];
-          if (base === lastBase || axis === lastAxis) continue;
-          const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
-          moves.push(`${base}${suffix}`);
-          lastBase = base;
-          lastAxis = axis;
-        }
-
-        return moves.join(" ");
-      }
-
-      function invertAlgorithm(algorithm) {
-        const tokens = parseAlgorithm(algorithm).reverse();
-        return tokens.map(invertMove).join(" ");
-      }
-
-      function invertMove(move) {
-        if (move.endsWith("2")) return move;
-        return move.endsWith("'") ? move.slice(0, -1) : `${move}'`;
-      }
-
       function applyMoveImmediate(move) {
         applyJobImmediate(createMoveJob(move, move));
       }
@@ -4559,58 +2896,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
             rotateLayer(layer.axis, layer.layer, layer.rotation);
           }
         }
-      }
-
-      function createMoveJob(displayMove, move) {
-        return {
-          displayMove,
-          move,
-          layers: getLayersForMove(move),
-          quarterTurns: getQuarterTurns(move)
-        };
-      }
-
-      function getQuarterTurns(move) {
-        return move.slice(1) === "2" ? 2 : 1;
-      }
-
-      function getLayersForMove(move) {
-        const base = move[0];
-        const suffix = move.slice(1);
-        const sign = suffix === "'" ? -1 : 1;
-        return getMoveLayers(base, sign);
-      }
-
-      function getMoveLayers(base, sign) {
-        const turn = -sign;
-        const definitions = {
-          U: [{ axis: "y", layer: 1, rotation: turn }],
-          D: [{ axis: "y", layer: -1, rotation: -turn }],
-          R: [{ axis: "x", layer: 1, rotation: turn }],
-          L: [{ axis: "x", layer: -1, rotation: -turn }],
-          F: [{ axis: "z", layer: 1, rotation: turn }],
-          B: [{ axis: "z", layer: -1, rotation: -turn }],
-          M: [{ axis: "x", layer: 0, rotation: turn }],
-          x: [
-            { axis: "x", layer: -1, rotation: turn },
-            { axis: "x", layer: 0, rotation: turn },
-            { axis: "x", layer: 1, rotation: turn }
-          ],
-          y: [
-            { axis: "y", layer: -1, rotation: turn },
-            { axis: "y", layer: 0, rotation: turn },
-            { axis: "y", layer: 1, rotation: turn }
-          ],
-          r: [
-            { axis: "x", layer: 0, rotation: turn },
-            { axis: "x", layer: 1, rotation: turn }
-          ],
-          l: [
-            { axis: "x", layer: -1, rotation: -turn },
-            { axis: "x", layer: 0, rotation: -turn }
-          ]
-        };
-        return definitions[base];
       }
 
       function rotateLayer(axis, layer, rotation) {
@@ -4633,29 +2918,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         }
 
         cube = next;
-      }
-
-      function axisIndex(axis) {
-        return axis === "x" ? 0 : axis === "y" ? 1 : 2;
-      }
-
-      function rotateVector(vector, axis, rotation) {
-        let [x, y, z] = vector;
-        const steps = ((rotation % 4) + 4) % 4;
-        for (let i = 0; i < steps; i++) {
-          if (axis === "x") {
-            [x, y, z] = [x, -z, y];
-          } else if (axis === "y") {
-            [x, y, z] = [z, y, -x];
-          } else {
-            [x, y, z] = [-y, x, z];
-          }
-        }
-        return [x, y, z];
-      }
-
-      function isSolved(current) {
-        return FACE_ORDER.every((face) => current[face].every((value) => value === current[face][0]));
       }
 
       function drawCubeNet() {
