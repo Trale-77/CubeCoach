@@ -5,6 +5,7 @@ import {
   FACE_COLOR_NAMES,
   faceletMap,
   reverseFaceletMap,
+  cubieFaceMap,
   reverseKey,
   createSolvedState,
   cloneState,
@@ -366,6 +367,10 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return key ? state.caseStats[key] || null : null;
       }
 
+      function isCrossTrainingActive() {
+        return state.mode === "CROSS" || state.currentCase?.name === "CROSS TRAINING";
+      }
+
       function attachEvents() {
         window.addEventListener("resize", () => cubeView.resize());
         window.addEventListener("keydown", onKeyDown);
@@ -375,10 +380,12 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         });
 
         newCaseBtn.addEventListener("click", () => {
-          if (state.mode === "FREE") {
-            practiceController.resetFreeMode(true, false);
-          } else if (state.mode === "CROSS") {
+          if (isCrossTrainingActive()) {
+            state.mode = "CROSS";
+            modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === "CROSS"));
             practiceController.resetCrossTrainingMode(true);
+          } else if (state.mode === "FREE") {
+            practiceController.resetFreeMode(true, false);
           } else {
             setCfopStageFloor(0);
             practiceController.chooseRandomCase();
@@ -562,9 +569,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         const scramblePracticeMode = isScramblePracticeMode();
         const crossMode = state.mode === "CROSS";
         caseNameEl.textContent = state.currentCase ? state.currentCase.name : "No Case";
-        algorithmEl.textContent = state.mode === "CROSS"
-          ? "White cross only"
-          : state.mode === "FREE" || !state.currentCase
+        algorithmEl.textContent = state.mode === "FREE" || !state.currentCase
             ? "Free practice"
             : state.currentCase.algorithm;
         algorithmEl.classList.toggle("blurred", !state.revealed && !scramblePracticeMode);
