@@ -19,6 +19,8 @@ export function createPracticeController({
   setCubeState,
   setCrossSolution
 }) {
+  const CROSS_SCRAMBLE_LENGTH = 12;
+
   function setMode(mode) {
     state.mode = mode;
     state.cfopStageFloor = 0;
@@ -62,10 +64,17 @@ export function createPracticeController({
   function resetCrossTrainingMode(generateNew = true) {
     clearMoveAnimations();
     resetCameraOrientation();
-    state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
     if (generateNew || !parseAlgorithm(state.currentSetupAlgorithm).length) {
-      state.currentSetupAlgorithm = generateScramble(24);
+      const previousScramble = state.currentSetupAlgorithm;
+      let nextScramble = generateScramble(CROSS_SCRAMBLE_LENGTH);
+      let attempts = 0;
+      while (nextScramble === previousScramble && attempts < 8) {
+        nextScramble = generateScramble(CROSS_SCRAMBLE_LENGTH);
+        attempts += 1;
+      }
+      state.currentSetupAlgorithm = nextScramble;
     }
+    state.currentCase = { name: "CROSS TRAINING", algorithm: state.currentSetupAlgorithm };
     state.revealed = false;
     setCubeState(createSolvedState());
     applyAlgorithm(state.currentSetupAlgorithm, false);
@@ -147,7 +156,7 @@ export function createPracticeController({
     syncCubeMaterials();
 
     if (state.mode === "CROSS") {
-      state.currentCase = { name: "CROSS TRAINING", algorithm: "White cross only" };
+      state.currentCase = { name: "CROSS TRAINING", algorithm: state.currentSetupAlgorithm };
       state.revealed = false;
       statusTextEl.textContent = "Custom cross scramble loaded.";
       updateUi();
