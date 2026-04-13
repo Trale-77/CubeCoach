@@ -1,0 +1,34 @@
+[2m1:38:01 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: cubieFaceMap is not defined
+[39m > getStickerMapAtState src/main.ts:2468:22
+    2466 |  
+    2467 |        function getStickerMapAtState(currentState, coords) {
+    2468 |          const faces = cubieFaceMap.get(coords.join(","));
+         |                        ^
+    2469 |          const stickers = {};
+    2470 |          for (const [faceName, facelet] of Object.entries(faces)) {
+ > isPieceSolvedAt src/main.ts:2457:25
+ > src/main.ts:2285:41
+ > arePositionsSolved src/main.ts:2285:23
+ > isWhiteCrossSolvedState src/main.ts:1932:15
+ > updateCfopStepStyles src/main.ts:650:28
+ > updateUi src/main.ts:646:8
+ > resetFreeMode src/features/practice.ts:59:4
+ > Object.setMode src/features/practice.ts:30:6
+
+[2m1:38:37 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mReferenceError[22m: cubieFaceMap is not defined
+[39m > getStickerMapAtState src/main.ts:2468:22
+    2466 |  
+    2467 |        function getStickerMapAtState(currentState, coords) {
+    2468 |          const faces = cubieFaceMap.get(coords.join(","));
+         |                        ^
+    2469 |          const stickers = {};
+    2470 |          for (const [faceName, facelet] of Object.entries(faces)) {
+ > isPieceSolvedAt src/main.ts:2457:25
+ > src/main.ts:2285:41
+ > arePositionsSolved src/main.ts:2285:23
+ > isWhiteCrossSolvedState src/main.ts:1932:15
+ > isCurrentGoalSolved src/main.ts:314:40
+ > resetStats src/main.ts:556:23
+ > resetCrossTrainingMode src/features/practice.ts:81:4
+ > Object.setMode src/features/practice.ts:33:6
+
