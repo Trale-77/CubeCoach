@@ -1,2 +1,8 @@
 node_modules
 dist
+.playwright-cli/
+graphify-out/
+src/graphify-out/
+*.log
+[[]C[]] CURRENT_TASK.md
+[[]C[]] PROJECT_OVERVIEW.md
