@@ -43,6 +43,7 @@ import { createCubeScannerController } from "./features/scanner";
 import { createColorEditorController } from "./features/colorEditor";
 import { createCubeViewController } from "./features/cubeView";
 import { createPracticeController } from "./features/practice";
+import { createRuntimeControls } from "./features/runtimeControls";
 
 const beginnerSolverWorker = new Worker(new URL("./beginnerSolver.worker.ts", import.meta.url), { type: "module" });
 let beginnerSolverRequestId = 0;
@@ -297,10 +298,91 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         setCrossSolution: setCurrentCfopCrossSolution
       });
 
+      const runtimeControls = createRuntimeControls({
+        state,
+        cubeView,
+        modeButtons,
+        newCaseBtn,
+        resetBtn,
+        revealBtn,
+        crossRevealBtn,
+        solveBtn,
+        undoBtn,
+        showScrambleBtn,
+        loadScrambleBtn,
+        savePracticeScrambleBtn,
+        loadPracticeScrambleBtn,
+        toCrossBtn,
+        toWhiteBtn,
+        toMiddleBtn,
+        toYellowCrossBtn,
+        toLastLayerEdgesBtn,
+        toCornerOrientationBtn,
+        toCornerPermutationBtn,
+        beginnerFullSolveBtn,
+        cfopCrossBtn,
+        cfopF2LBtn,
+        cfopOllBtn,
+        cfopPllBtn,
+        cfopNewF2LBtn,
+        cfopNewOllBtn,
+        cfopNewPllBtn,
+        cfopFullSolveBtn,
+        solveMethodEl,
+        solveScopeEl,
+        quizModeEl,
+        quizAnswerEl,
+        quizCheckBtn,
+        quizClearBtn,
+        customScrambleInputEl,
+        zoomSliderEl,
+        zoomValueEl,
+        zoomResetBtn,
+        speedSliderEl,
+        speedValueEl,
+        speedResetBtn,
+        resetCaseStatsBtn,
+        resetSessionStatsBtn,
+        filterAllBtn,
+        filterNoneBtn,
+        onKeyDown,
+        practiceController,
+        isCrossTrainingActive,
+        setCfopStageFloor,
+        updateSolveMethod,
+        updateSolveScope,
+        updateQuizMode,
+        checkQuizAnswer,
+        clearQuizAnswer,
+        updateUi,
+        resetCurrentCaseStats,
+        resetSessionStats,
+        setAllCurrentFilters,
+        solveCubeAnimated,
+        undoLastMove,
+        replayCurrentScramble,
+        solveToWhiteCross,
+        solveToWhiteFace,
+        solveToMiddleLayer,
+        solveToYellowCross,
+        solveToLastLayerEdges,
+        solveToCornerOrientation,
+        solveToCornerPermutation,
+        solveBeginnerFullCube,
+        solveToCfopCross,
+        solveToCfopF2L,
+        solveToCfopOll,
+        solveToCfopPll,
+        startNewF2LPractice,
+        startNewOllPractice,
+        startNewPllPractice,
+        solveCfopFullCube
+      });
+
       syncCubeMaterials();
-      attachEvents();
-      updateZoomFromSlider();
-      updateAnimationSpeed();
+      runtimeControls.attachEvents();
+      runtimeControls.updateZoomFromSlider();
+      runtimeControls.updateAnimationSpeed();
       practiceController.setMode("FREE");
 
       function getCasesForMode(mode) {
@@ -369,130 +451,6 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
       function isCrossTrainingActive() {
         return state.mode === "CROSS" || state.currentCase?.name === "CROSS TRAINING";
-      }
-
-      function attachEvents() {
-        window.addEventListener("resize", () => cubeView.resize());
-        window.addEventListener("keydown", onKeyDown);
-
-        modeButtons.forEach((button) => {
-          button.addEventListener("click", () => practiceController.setMode(button.dataset.mode));
-        });
-
-        newCaseBtn.addEventListener("click", () => {
-          if (isCrossTrainingActive()) {
-            state.mode = "CROSS";
-            modeButtons.forEach((button) => button.classList.toggle("active", button.dataset.mode === "CROSS"));
-            practiceController.resetCrossTrainingMode(true);
-          } else if (state.mode === "FREE") {
-            practiceController.resetFreeMode(true, false);
-          } else {
-            setCfopStageFloor(0);
-            practiceController.chooseRandomCase();
-          }
-        });
-
-        resetBtn.addEventListener("click", () => practiceController.resetCurrentCase());
-        revealBtn.addEventListener("click", practiceController.revealAlgorithm);
-        crossRevealBtn?.addEventListener("click", practiceController.revealAlgorithm);
-        solveBtn?.addEventListener("click", solveCubeAnimated);
-        undoBtn.addEventListener("click", undoLastMove);
-        showScrambleBtn.addEventListener("click", replayCurrentScramble);
-        loadScrambleBtn?.addEventListener("click", practiceController.loadCustomScramble);
-        savePracticeScrambleBtn?.addEventListener("click", practiceController.savePracticeScramble);
-        loadPracticeScrambleBtn?.addEventListener("click", practiceController.loadSavedPracticeScramble);
-        toCrossBtn.addEventListener("click", solveToWhiteCross);
-        toWhiteBtn.addEventListener("click", solveToWhiteFace);
-        toMiddleBtn.addEventListener("click", solveToMiddleLayer);
-        toYellowCrossBtn.addEventListener("click", solveToYellowCross);
-        toLastLayerEdgesBtn.addEventListener("click", solveToLastLayerEdges);
-        toCornerOrientationBtn.addEventListener("click", solveToCornerOrientation);
-        toCornerPermutationBtn.addEventListener("click", solveToCornerPermutation);
-        beginnerFullSolveBtn.addEventListener("click", solveBeginnerFullCube);
-        cfopCrossBtn.addEventListener("click", () => {
-          setCfopStageFloor(0);
-          solveToCfopCross();
-        });
-        cfopF2LBtn.addEventListener("click", () => {
-          setCfopStageFloor(1);
-          solveToCfopF2L();
-        });
-        cfopOllBtn.addEventListener("click", () => {
-          setCfopStageFloor(2);
-          solveToCfopOll();
-        });
-        cfopPllBtn.addEventListener("click", () => {
-          setCfopStageFloor(3);
-          solveToCfopPll();
-        });
-        cfopNewF2LBtn.addEventListener("click", () => {
-          setCfopStageFloor(1);
-          startNewF2LPractice();
-        });
-        cfopNewOllBtn.addEventListener("click", () => {
-          setCfopStageFloor(2);
-          startNewOllPractice();
-        });
-        cfopNewPllBtn.addEventListener("click", () => {
-          setCfopStageFloor(3);
-          startNewPllPractice();
-        });
-        cfopFullSolveBtn.addEventListener("click", () => {
-          setCfopStageFloor(3);
-          solveCfopFullCube();
-        });
-        solveMethodEl.addEventListener("change", updateSolveMethod);
-        solveScopeEl.addEventListener("change", updateSolveScope);
-        quizModeEl.addEventListener("change", updateQuizMode);
-        quizCheckBtn.addEventListener("click", checkQuizAnswer);
-        quizClearBtn.addEventListener("click", clearQuizAnswer);
-        quizAnswerEl.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            checkQuizAnswer();
-          }
-        });
-        customScrambleInputEl?.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            practiceController.loadCustomScramble();
-          }
-        });
-        customScrambleInputEl?.addEventListener("input", () => updateUi());
-        zoomSliderEl.addEventListener("input", updateZoomFromSlider);
-        zoomResetBtn.addEventListener("click", resetZoomToDefault);
-        speedSliderEl.addEventListener("input", updateAnimationSpeed);
-        speedResetBtn.addEventListener("click", resetSpeedToDefault);
-        resetCaseStatsBtn.addEventListener("click", resetCurrentCaseStats);
-        resetSessionStatsBtn.addEventListener("click", resetSessionStats);
-        filterAllBtn.addEventListener("click", () => setAllCurrentFilters(true));
-        filterNoneBtn.addEventListener("click", () => setAllCurrentFilters(false));
-      }
-
-      function updateZoomFromSlider() {
-        const sliderValue = Number(zoomSliderEl.value);
-        const normalized = (sliderValue - 50) / 50;
-        cubeView.setZoomNormalized(normalized);
-        zoomValueEl.textContent = normalized === 0 ? "0" : normalized.toFixed(2);
-      }
-
-      function updateAnimationSpeed() {
-        const ms = Number(speedSliderEl.value || 180);
-        cubeView.setAnimationDuration(ms);
-        speedValueEl.textContent = `${ms}ms`;
-        try {
-          localStorage.setItem(STORAGE_KEYS.speed, String(ms));
-        } catch (error) {}
-      }
-
-      function resetSpeedToDefault() {
-        speedSliderEl.value = "180";
-        updateAnimationSpeed();
-      }
-
-      function resetZoomToDefault() {
-        zoomSliderEl.value = "50";
-        updateZoomFromSlider();
       }
 
       function resetCameraOrientation() {
@@ -1191,9 +1149,11 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         updateUi();
         const beginnerResult = await requestBeginnerMethodSolution(cube, "CFOP_F2L", (message) => {
           if (!state.beginnerSolving || !message) return;
-          statusTextEl.textContent = message
-            .replace(/white cross/gi, "CFOP cross")
-            .replace(/f2l pair/gi, "F2L pair");
+          statusTextEl.textContent = annotateF2lPairText(
+            message
+              .replace(/white cross/gi, "CFOP cross")
+              .replace(/f2l pair/gi, "F2L pair")
+          );
         });
         state.beginnerSolving = false;
         const solution = beginnerResult?.solution || [];
@@ -1442,32 +1402,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         const ollResult = findCfopOllSolution(working);
         if (!ollResult) {
-          const fallbackLastLayer = await solveBeginnerLastLayerFromState(working, "YELLOW_CROSS");
-          if (!fallbackLastLayer.moves) {
-            state.beginnerSolving = false;
-            statusTextEl.textContent = `CFOP full solve error: ${fallbackLastLayer.error}`;
-            updateUi();
-            return;
-          }
-          if (fallbackLastLayer.moves.length > 0) {
-            fullMoves.push(...fallbackLastLayer.moves);
-            working = fallbackLastLayer.working;
-            breakdown = mergeBeginnerBreakdown(breakdown, fallbackLastLayer.breakdown);
-          }
           state.beginnerSolving = false;
-          if (!fullMoves.length) {
-            statusTextEl.textContent = "Cube is already solved.";
-            updateUi();
-            return;
-          }
-          state.beginnerBreakdown = breakdown;
-          state.setupHistory = [];
-          state.userHistory = [];
-          for (const move of fullMoves) {
-            performMove(move, false);
-          }
+          statusTextEl.textContent = "CFOP full solve error: no matching OLL algorithm found.";
           updateUi();
-          statusTextEl.textContent = "CFOP cross + F2L built. Beginner last layer fallback finished the solve.";
           return;
         }
         if (ollResult.moves.length > 0) {
@@ -1479,32 +1416,9 @@ beginnerSolverWorker.addEventListener("message", (event) => {
 
         const pllResult = findCfopPllSolution(working);
         if (!pllResult) {
-          const fallbackLastLayer = await solveBeginnerLastLayerFromState(working, "LAST_LAYER_EDGES");
-          if (!fallbackLastLayer.moves) {
-            state.beginnerSolving = false;
-            statusTextEl.textContent = `CFOP full solve error: ${fallbackLastLayer.error}`;
-            updateUi();
-            return;
-          }
-          if (fallbackLastLayer.moves.length > 0) {
-            fullMoves.push(...fallbackLastLayer.moves);
-            working = fallbackLastLayer.working;
-            breakdown = mergeBeginnerBreakdown(breakdown, fallbackLastLayer.breakdown);
-          }
           state.beginnerSolving = false;
-          if (!fullMoves.length) {
-            statusTextEl.textContent = "Cube is already solved.";
-            updateUi();
-            return;
-          }
-          state.beginnerBreakdown = breakdown;
-          state.setupHistory = [];
-          state.userHistory = [];
-          for (const move of fullMoves) {
-            performMove(move, false);
-          }
+          statusTextEl.textContent = "CFOP full solve error: no matching PLL algorithm found.";
           updateUi();
-          statusTextEl.textContent = "CFOP cross + F2L + OLL built. Beginner PLL fallback finished the solve.";
           return;
         }
         if (pllResult.moves.length > 0) {
@@ -1813,9 +1727,35 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         }
         const totalMoves = breakdown.reduce((sum, item) => sum + (item.moves || 0), 0);
         const rows = breakdown
-          .map((item) => `${item.label}: ${item.moves} move${item.moves === 1 ? "" : "s"}`)
+          .map((item) => `${formatDisplayedStepLabel(item.label)}: ${item.moves} move${item.moves === 1 ? "" : "s"}`)
           .join("<br>");
         return `<strong>Total: ${totalMoves} move${totalMoves === 1 ? "" : "s"}</strong><br>${rows}`;
+      }
+
+      function formatDisplayedStepLabel(label) {
+        const pairColors = getF2lPairColors(label);
+        return pairColors ? `${label} (${pairColors})` : label;
+      }
+
+      function annotateF2lPairText(text) {
+        return String(text || "").replace(/F2L Pair (\d+)/gi, (_, pairNumber) => {
+          const pairColors = getF2lPairColors(`F2L Pair ${pairNumber}`);
+          return pairColors ? `F2L Pair ${pairNumber} (${pairColors})` : `F2L Pair ${pairNumber}`;
+        });
+      }
+
+      function getF2lPairColors(label) {
+        const match = String(label || "").match(/^F2L Pair (\d+)$/i);
+        if (!match) return "";
+        const pairIndex = Number(match[1]);
+        const pairFaces = [
+          ["F", "R"],
+          ["R", "B"],
+          ["B", "L"],
+          ["L", "F"]
+        ][pairIndex - 1];
+        if (!pairFaces) return "";
+        return pairFaces.map((face) => FACE_COLOR_NAMES[face]).join("-");
       }
 
       function inferBeginnerLessonKey() {
@@ -1946,6 +1886,16 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         return currentState.U.every((value) => value === "U");
       }
 
+      function parseCfopCaseAlgorithm(algorithm) {
+        return String(algorithm || "")
+          .trim()
+          .split(/\s+/)
+          .map((token) => token.replace(/[()]/g, "").replace(/1/g, "").replace(/3/g, "'"))
+          .map((token) => token.replace(/2'$/g, "2"))
+          .filter((token) => /^[A-Za-z]/.test(token))
+          .filter(Boolean);
+      }
+
       function findCfopOllSolution(currentState) {
         const cacheKey = serializeState(currentState);
         const cached = solverCache.cfopOll.get(cacheKey);
@@ -1965,7 +1915,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
           const undoRotation = rotation.slice().reverse().map(invertMove);
           for (const auf of aufs) {
             for (const item of OLL_CASES) {
-              const candidate = rotation.concat(auf, parseAlgorithm(item.algorithm), undoRotation);
+              const candidate = rotation.concat(auf, parseCfopCaseAlgorithm(item.algorithm), undoRotation);
               const next = applyMovesToState(currentState, candidate);
               if (!isCfopOllSolved(next)) continue;
               if (!areFirstTwoLayersSolved(next)) continue;
@@ -2000,7 +1950,7 @@ beginnerSolverWorker.addEventListener("message", (event) => {
         for (const rotation of rotations) {
           for (const preAuf of aufs) {
             for (const item of PLL_CASES) {
-              const algorithm = parseAlgorithm(item.algorithm);
+              const algorithm = parseCfopCaseAlgorithm(item.algorithm);
               for (const postAuf of aufs) {
                 for (const endRotation of endRotations) {
                   const candidate = rotation.concat(preAuf, algorithm, postAuf, endRotation);
